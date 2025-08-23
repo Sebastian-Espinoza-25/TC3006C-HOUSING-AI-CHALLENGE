@@ -1,42 +1,42 @@
 # Housing-AI Frontend
 
-Este repositorio contiene el **frontend** del proyecto **Housing-AI**, creado con [React](https://react.dev/).
+This repository contains the **frontend** of the **Housing-AI** project, built with [React](https://react.dev/).
 
 ---
 
-## Esquema de Ramas (Branching Strategy)
+## Branching Strategy
 
-Para mantener un flujo de trabajo limpio y organizado, usamos un esquema de ramas basado en **features**:
+To keep the workflow clean and organized, we follow a **feature-based branching strategy**:
 
-### Ramas principales
-- **`main`** → Rama estable de producción.  
+### Main branch
+- **`main`** → Stable production branch.  
 
-### Ramas de trabajo
-- **`feature/*`** → Desarrollo de nuevas funcionalidades.  
-  Ejemplo: `feature/login-page`
-- **`fix/*`** → Corrección de errores puntuales.  
-  Ejemplo: `fix/navbar-overflow`
-- **`chore/*`** → Tareas de mantenimiento (configs, dependencias, etc).  
-  Ejemplo: `chore/eslint-prettier`
-- **`docs/*`** → Cambios en la documentación.  
-  Ejemplo: `docs/readme-setup`
-- **`hotfix/*`** → Arreglos urgentes en `main`.  
-  Ejemplo: `hotfix/payments-timeout`
-
----
-
-## Flujo de Trabajo
-
-1. Crear rama desde `main`  
-2. Subir la rama al remoto  
-3. Fusionar manualmente a `main` cuando la funcionalidad esté lista  
-4. Eliminar la rama local si ya no es necesaria
+### Working branches
+- **`feature/*`** → Development of new features.  
+  Example: `feature/login-page`
+- **`fix/*`** → Bug fixes.  
+  Example: `fix/navbar-overflow`
+- **`chore/*`** → Maintenance tasks (configs, dependencies, etc).  
+  Example: `chore/eslint-prettier`
+- **`docs/*`** → Documentation changes.  
+  Example: `docs/readme-setup`
+- **`hotfix/*`** → Urgent fixes applied directly to `main`.  
+  Example: `hotfix/payments-timeout`
 
 ---
 
-## Convenciones de Commits
+## Workflow
 
-Ejemplos de mensajes válidos:
+1. Create a branch from `main`  
+2. Push the branch to remote  
+3. Merge manually into `main` once the feature is complete  
+4. Delete the local branch if no longer needed
+
+---
+
+## Commit Conventions
+
+Examples of valid commit messages:
 - `feat: add login page`
 - `fix: handle invalid credentials`
 - `chore: update dependencies`
@@ -45,22 +45,22 @@ Ejemplos de mensajes válidos:
 
 ---
 
-## Ejemplo rápido
+## Quick Example
 
 ```bash
-# Crear rama desde main
+# Create branch from main
 git checkout main
 git pull origin main
 git checkout -b feature/login-page
 
-# Trabajar y commitear
+# Work and commit
 git add .
 git commit -m "feat: add login page UI"
 
-# Subir rama
+# Push branch
 git push -u origin feature/login-page
 
-# Fusionar a main
+# Merge back to main
 git checkout main
 git merge feature/login-page
 git push origin main
