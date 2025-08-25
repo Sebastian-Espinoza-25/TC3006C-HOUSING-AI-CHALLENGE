@@ -1,12 +1,16 @@
-import './App.css';
+import "./styles/Styles.css";
+import "./App.css";
+import Navbar from "./Components/header/Navbar";
+import AppRoutes from "./Components/routes/AppRoutes";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Welcome to the Housing AI Challenge</h1>
-      </header>
-    </div>
+    <>
+      <Navbar />
+      <div className="container">
+      <AppRoutes />
+      </div>
+    </>
   );
 }
 
