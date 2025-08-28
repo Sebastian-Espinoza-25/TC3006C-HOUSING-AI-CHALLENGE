@@ -3,9 +3,9 @@ export default function LandingPage() {
     <div className="landing">
       <div className="hero">
         <div className="hero-content">
-          <h1>¿Quieres vender o rentar tu propiedad rápido?</h1>
-          <p>Publica aquí y llega a miles de personas en segundos.</p>
-          <button className="cta">Regístrate</button>
+          <h1>Want to rent or sell your property fast?</h1>
+          <p>Reach thousands of people in seconds with House Link.</p>
+          <button className="cta">Sign Up</button>
         </div>
       </div>
     </div>
