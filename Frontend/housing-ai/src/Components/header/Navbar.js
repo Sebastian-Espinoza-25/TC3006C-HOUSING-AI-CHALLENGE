@@ -35,6 +35,9 @@ export default function Navbar() {
           <li>
             <Link to="/how-it-works">How It Works</Link>
           </li>
+          <li>
+            <Link to="/login">Login</Link>
+          </li>
         </ul>
       </nav>
 
