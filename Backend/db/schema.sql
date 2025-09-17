@@ -1,5 +1,5 @@
--- Schema for HouseLink Database
--- CREATE DATABASE houselink;
+Schema for HouseLink Database
+CREATE DATABASE houselink;
 
 -- 1) Clients
 CREATE TABLE clients (
