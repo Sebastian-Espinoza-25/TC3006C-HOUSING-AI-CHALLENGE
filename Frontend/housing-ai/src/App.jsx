@@ -10,9 +10,11 @@ export default function App() {
     <div className="app-layout">
       <Navbar />
       <ScrollToTop />
-      <div className="container">
-        <AppRoutes />
-      </div>
+      <main className="app-main">
+        <div className="container">
+          <AppRoutes />
+        </div>
+      </main>
       <Footer />
     </div>
   );
