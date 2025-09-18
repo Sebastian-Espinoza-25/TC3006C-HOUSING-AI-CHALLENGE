@@ -1,0 +1,182 @@
+/**
+ * @author Ulises Jaramillo Portilla | A01798380 | Ulises-JPx
+ *
+ * This stylesheet defines the visual appearance and interactive animations for the seller welcome page
+ * of the Housing AI Challenge frontend. It provides a visually appealing background, animated welcome
+ * title, subtitle styling, and a modern glassmorphism-inspired button bar for seller actions.
+ */
+
+/* Import Google Fonts for custom typography */
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Funnel+Display&display=swap');
+
+/* 
+ * Main container for the seller page.
+ * Applies a full-screen background image, centers content, and prevents scrollbars.
+ */
+.sell-container {
+    font-family: Arial, sans-serif; 
+    background: url("https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop")
+        center/cover no-repeat; 
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+/* 
+ * Subtitle styling below the animated title.
+ * Uses a custom font, white color, and subtle text shadow for readability.
+ */
+.subtitle {
+    margin-top: 0.3rem;
+    font-size: 1.18rem;
+    font-family: 'Funnel Display', sans-serif;
+    color: #ffffff;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 
+ * Animated welcome title container.
+ * Uses a script font, large size, and text shadow for emphasis.
+ * The animation is handled by child divs for sequential reveal.
+ */
+.title-anim {
+    font-size: 4.5rem;
+    font-family: 'Pacifico', cursive;
+    color: #fff;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    padding-top: 2rem;
+}
+
+/* 
+ * Each part of the animated title ("Bienvenido" and "Vendedor") is wrapped in a div.
+ * This enables independent animation for each word.
+ */
+.title-anim div {
+    display: inline-block;
+    overflow: hidden;
+    width: 330px;
+    white-space: nowrap;                              /* Prevents wrapping */
+}
+
+/* 
+ * The first div ("Welcome") fades in using the showup animation.
+ */
+.title-anim div:first-of-type {
+    animation: showup 4s forwards;
+}
+
+/* 
+ * The second div ("Seller") is initially hidden and then revealed by expanding width.
+ */
+.title-anim div:last-of-type {
+    width: 0px;
+    animation: reveal 4s forwards;
+}
+
+/* 
+ * The span inside the second div slides in from the left as the div is revealed.
+ */
+.title-anim div:last-of-type span {
+    animation: slidein 4s forwards;
+}
+
+/* 
+ * Keyframes for the "showup" animation.
+ * Fades in the first word ("Welcome").
+ */
+@keyframes showup {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 1; }
+}
+
+/* 
+ * Keyframes for the "slidein" animation.
+ * Slides the "Vendedor" word in from the left after a delay.
+ */
+@keyframes slidein {
+    0% { margin-left: -250px; }
+    40% { margin-left: -250px; }
+    60% { margin-left: 0px; }
+    100% { margin-left: 0px; }
+}
+
+/* 
+ * Keyframes for the "reveal" animation.
+ * Expands the width of the second div to reveal the "Vendedor" word.
+ */
+@keyframes reveal {
+    0% { opacity: 0; width: 0px; }
+    40% { opacity: 1; width: 0px; }
+    60% { width: 235px; }
+    100% { opacity: 1; width: 235px; }
+}
+
+/* 
+ * Paragraph styling inside the welcome card.
+ * Provides spacing and color for introductory text.
+ */
+.welcome-card p {
+    margin-top: 1.5rem;
+    font-size: 1.2rem;
+    color: #dce3f0;
+}
+
+/* 
+ * Button bar container for seller actions.
+ * Uses glassmorphism style with rounded corners, shadow, and semi-transparent background.
+ * Centers buttons and provides spacing between them.
+ */
+.button-bar {
+    margin-top: 4rem;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 2rem 3rem;
+    border-radius: 24px;
+    max-width: 900px;
+    width: 90%;
+    background: rgba(176, 169, 143, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* 
+ * Glassmorphism-style button for seller actions.
+ * Large, rounded, and semi-transparent with blur effect.
+ * Includes hover effects for interactivity.
+ */
+.glass-btn {
+    padding: 1.5rem 2.5rem;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.2rem;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+    cursor: pointer;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    min-width: 200px;
+}
+
+/* 
+ * Hover state for glassmorphism buttons.
+ * Increases background opacity, adds shadow, and slightly lifts the button for feedback.
+ */
+.glass-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
