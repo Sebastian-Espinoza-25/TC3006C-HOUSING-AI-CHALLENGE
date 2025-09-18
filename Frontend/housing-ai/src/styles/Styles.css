@@ -4,7 +4,19 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }    /* smooth programmatic/anchor scroll */
 body { margin: 0; }
-.container { margin: 1rem; text-align: center; } /* global helper */
+.container {
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+
+html, body {
+  overflow-x: hidden;
+  width: 100%; 
+}
+
+
 
 /* =========================
    Navbar (glass, sticky)
@@ -67,6 +79,7 @@ body { margin: 0; }
 .landing .hero {
   position: relative; overflow: hidden; border-radius: 12px;
   min-height: 70vh;                 /* vertical size of the hero */
+  margin: 1rem;
   display: grid; place-items: center;
 
   /* Background image (path is relative to this CSS file) */
@@ -171,68 +184,27 @@ body { margin: 0; }
 /* =========================
    Footer (sticky-ready + entrance animation)
    ========================= */
-/* Layout base: asegura que el footer se quede al final */
-/* --- Sticky footer base --- */
-html, body, #root {
-  height: 100%;
-  min-height: 100%;
-  margin: 0;
-}
+html, body, #root { height: 100%; }
+.app-layout { min-height: 100vh; display: flex; flex-direction: column; }
+.app-main { flex: 1; }
 
-/* #root es el contenedor de React */
-#root {
-  display: flex;
-  flex-direction: column;
-}
-
-/* app-layout ocupa toda la pantalla */
-.app-layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* El main crece y empuja al footer hacia abajo */
-.app-main {
-  flex: 1;
-  display: flex;      /* opcional, útil si quieres centrar cosas adentro */
-  flex-direction: column;
-}
-
-/* Si tu .container tiene max-widths/márgenes, esto no afecta el sticky */
-.container {
-  width: 100%;
-}
-
-/* --- Footer --- */
 .footer {
-  margin-top: auto;           /* clave del sticky */
-  background: #1e3799;
+  width: 100%;
+  background: #1E3A8A;
   color: #fff;
-  padding: 14px 24px;
-  position: relative;         /* crea contexto de apilamiento */
-  z-index: 2;  
+  padding: 1rem;
+  text-align: center;
 }
+
+.footer.is-visible { opacity: 1; transform: translateY(0); filter: none; }
 
 .footer__inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: space-between;
+  max-width: 1200px; padding: .75rem 1rem; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
 }
-
-.footer__nav {
-  list-style: none;
-  display: flex;
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-}
-
-.footer__nav a { color: #fff; text-decoration: none; font-weight: 500; }
-.footer__nav a:hover { text-decoration: underline; }
+.footer__nav { list-style: none; margin: 0; padding: 0; }
+.footer__nav a { color: inherit; text-decoration: none; padding: .25rem .5rem; border-radius: .375rem; }
+.footer__nav a:hover { background: rgba(255,255,255,.15); }
 
 /* =========================
    About: Floating Card Carousel
@@ -334,231 +306,4 @@ html, body, #root {
 /* Optional: tiny spacing tweak so numbers sit a bit closer to text */
 .landing .step-num {
   margin-right: 4px;
-}
-
-/* =========================
-   Login & Register Page 
-   ========================= */
-
-/* Layout general: dos columnas */
-.auth-layout {
-  display: flex;
-  min-height: calc(100vh - 80px);
-  background: #f9fafb;
-}
-
-/* Columna izquierda: mensaje corporativo */
-.auth-info {
-  flex: 1;
-  background: linear-gradient(135deg, #4a69bd, #1e3799);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 60px 40px;
-  text-align: center;
-}
-
-.auth-info h1 {
-  font-size: 3rem;          /* más grande */
-  margin-bottom: 20px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.auth-info h1 span {
-  color: #ff9f43;
-}
-
-.auth-info p {
-  font-size: 1.4rem;        /* más grande */
-  line-height: 1.7;
-  max-width: 600px;
-  margin-bottom: 36px;
-}
-
-.auth-info img {
-  max-width: 100%;
-  width: 550px;             /* imagen más grande */
-  border-radius: 16px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.35);
-}
-
-/* Columna derecha: formulario */
-.auth-form {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 60px 40px;
-  background: #fff;
-}
-
-/* Tarjeta del formulario */
-.form-container {
-  width: 100%;
-  max-width: 420px;
-  padding: 32px 28px;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.1);
-}
-
-.form-container h2 {
-  text-align: center;
-  margin-bottom: 24px;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.form-container form { margin-top: 10px; }
-
-.form-container input {
-  width: 100%;
-  height: 48px;            /* un poco más altos */
-  padding: 0 14px;
-  margin: 12px 0;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  background: #fff;
-  font-size: 1.05rem;       /* texto un poco más grande */
-  color: #111827;
-  transition: box-shadow .15s ease, border-color .15s ease;
-}
-
-.form-container input::placeholder { color: #9ca3af; }
-
-.form-container input:focus {
-  outline: none;
-  border-color: #4a69bd;
-  box-shadow: 0 0 0 4px rgba(74,105,189,.18);
-}
-
-/* Campo de password con ojo embebido */
-.password-wrapper {
-  position: relative;
-  display: block;
-}
-
-.password-wrapper input {
-  padding-right: 44px;
-}
-
-.eye-btn {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
-  height: 28px;
-  width: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  color: #6b7280;
-  border-radius: 6px;
-}
-
-.eye-btn:hover { color: #374151; }
-.eye-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(74,105,189,.25);
-}
-
-/* Botón de submit */
-.form-container button[type="submit"] {
-  width: 100%;
-  height: 48px;
-  margin-top: 14px;
-  background: #4a69bd;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.05rem;
-  font-weight: 600;
-  transition: background .2s ease-in-out, transform .02s ease-in-out;
-}
-
-.form-container button[type="submit"]:hover { background: #3e58a2; }
-.form-container button[type="submit"]:active { transform: translateY(1px); }
-
-/* Texto de ayuda debajo del form */
-.form-container p {
-  text-align: center;
-  margin-top: 16px;
-  color: #111827;
-  font-size: 0.95rem;
-}
-
-.form-container a {
-  color: #4a69bd;
-  text-decoration: none;
-  font-weight: 600;
-}
-.form-container a:hover { text-decoration: underline; }
-
-/* =========================
-   Responsive
-   ========================= */
-@media (max-width: 900px) {
-  .auth-layout {
-    flex-direction: column;
-  }
-
-  .auth-info {
-    padding: 30px 20px;
-  }
-
-  .auth-info h1 { font-size: 2.2rem; }
-  .auth-info p { font-size: 1.1rem; max-width: 90%; }
-  .auth-info img { width: 80%; max-width: 320px; }
-
-  .form-container { max-width: 90%; }
-}
-
-/* ===== Register page background video (scoped) ===== */
-.register-page {
-  position: relative;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  background: transparent;   /* no tapes el video */
-  isolation: isolate;        /* stacking context para z-index */
-}
-
-.register-page .bg-video--full {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%); /* centra el video */
-  width: 500vw;   /* 90% del ancho del viewport */
-  height: 200vh;  /* 70% de la altura del viewport */
-  object-fit: contain;
-  z-index: 0;
-  opacity: 0.25;
-  filter: blur(2px);
-}
-
-
-
-/* Capa oscura encima del video (debajo del form) */
-.register-page::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background: radial-gradient(ellipse at center,
-              rgba(0,0,0,.22) 0%, rgba(0,0,0,.40) 100%);
-  pointer-events: none;
-}
-
-/* Formulario por encima del video y overlay */
-.register-page .form-container {
-  position: relative;
-  z-index: 1;
 }
