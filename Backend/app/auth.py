@@ -6,19 +6,18 @@ from flask_jwt_extended import (
 )
 from .services import ClientService, VendorService
 from .models import Client, Vendor
-from . import db
 
 auth_bp = Blueprint("auth", __name__)
 
-def _identity_payload(role, user_id):
-    # Lo que quieras llevar en el token
+def _identity_payload(role: str, user_id: int):
+    # Lo que se guardará en el token
     return {"role": role, "id": user_id}
 
 @auth_bp.post("/login")
 def login():
     """
     Body: { "identifier": "<email o username>", "password": "..." , "role": "client|vendor|auto" }
-    - role=auto buscará primero cliente y luego vendor
+    role=auto: intenta primero como cliente y luego como vendor
     """
     data = request.get_json() or {}
     identifier = data.get("identifier")
@@ -28,36 +27,35 @@ def login():
     if not identifier or not password:
         return jsonify({"error": "identifier y password son requeridos"}), 400
 
-    user = None
+    user_dict = None
     resolved_role = None
 
     if role in ("client", "cliente"):
-        user = ClientService.verify_client_credentials(identifier, password)
-        resolved_role = "client" if user else None
+        user_dict = ClientService.authenticate(identifier, password)
+        resolved_role = "client" if user_dict else None
     elif role in ("vendor", "vendedor"):
-        user = VendorService.verify_vendor_credentials(identifier, password)
-        resolved_role = "vendor" if user else None
+        user_dict = VendorService.authenticate(identifier, password)
+        resolved_role = "vendor" if user_dict else None
     else:  # auto
-        user = ClientService.verify_client_credentials(identifier, password)
-        resolved_role = "client" if user else None
-        if not user:
-            user = VendorService.verify_vendor_credentials(identifier, password)
-            resolved_role = "vendor" if user else None
+        user_dict = ClientService.authenticate(identifier, password)
+        resolved_role = "client" if user_dict else None
+        if not user_dict:
+            user_dict = VendorService.authenticate(identifier, password)
+            resolved_role = "vendor" if user_dict else None
 
-    if not user:
+    if not user_dict:
         return jsonify({"error": "Credenciales inválidas"}), 401
 
-    identity = _identity_payload(resolved_role, user.client_id if resolved_role=="client" else user.vendor_id)
-    access_token  = create_access_token(identity=identity, additional_claims=identity)
-    refresh_token = create_refresh_token(identity=identity)
+    user_id = user_dict.get("client_id") if resolved_role == "client" else user_dict.get("vendor_id")
+    ident = _identity_payload(resolved_role, user_id)
+
+    access_token  = create_access_token(identity=ident, additional_claims=ident)
+    refresh_token = create_refresh_token(identity=ident)
 
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "user": {
-            "role": resolved_role,
-            **(user.to_dict())
-        }
+        "user": {**user_dict, "role": resolved_role}
     })
 
 @auth_bp.get("/me")
@@ -67,11 +65,7 @@ def me():
     role = ident.get("role")
     uid  = ident.get("id")
 
-    if role == "client":
-        user = Client.query.get(uid)
-    else:
-        user = Vendor.query.get(uid)
-
+    user = Client.query.get(uid) if role == "client" else Vendor.query.get(uid)
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
 
@@ -81,6 +75,6 @@ def me():
 @jwt_required(refresh=True)
 def refresh():
     ident = get_jwt_identity()
-    claims = get_jwt()  # por si quieres leer más cosas
+    _ = get_jwt()  # por si necesitas claims
     access_token = create_access_token(identity=ident, additional_claims=ident)
     return jsonify({"access_token": access_token})

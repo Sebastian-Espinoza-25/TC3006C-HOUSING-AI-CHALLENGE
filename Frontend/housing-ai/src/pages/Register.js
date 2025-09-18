@@ -5,7 +5,7 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import animatedLogo from "../Assets/animatedlogo.mov";
 import "../styles/Styles.css";
 
-const API = process.env.REACT_APP_API || "http://localhost:5000";
+const API = process.env.REACT_APP_API || "http://localhost:5001";
 
 export default function Register() {
   const nav = useNavigate();
