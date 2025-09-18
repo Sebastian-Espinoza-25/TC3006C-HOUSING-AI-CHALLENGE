@@ -6,17 +6,36 @@ import HowItWorks from "../../pages/HowItWorks";
 import Login from "../../pages/Login";
 import Register from "../../pages/Register";
 import About from "../../pages/About";
+import RequireAuth from "../../guards/RequireAuth";
 
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* Públicas */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/search" element={<SearchHouse />} />
-      <Route path="/sell" element={<Sell />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/Register" element={<Register />} />
-      <Route path="/about" element={<About/>} />
+      {/* usa minúsculas para evitar problemas de routing */}
+      <Route path="/register" element={<Register />} />
+      <Route path="/about" element={<About />} />
+
+      {/* Privadas (protegidas con token) */}
+      <Route
+        path="/search"
+        element={
+          <RequireAuth>
+            <SearchHouse />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sell"
+        element={
+          <RequireAuth>
+            <Sell />
+          </RequireAuth>
+        }
+      />
     </Routes>
   );
 }

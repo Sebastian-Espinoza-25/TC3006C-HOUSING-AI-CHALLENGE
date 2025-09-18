@@ -1,45 +1,53 @@
-// Login.js
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import houseImg from "../Assets/house.png";
 import "../styles/Styles.css";
+import { login } from "../services/auth"; // 👈
 
 export default function Login() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate("/");
+    setLoading(true);
+    try {
+      const data = await login(formData.email, formData.password); // 👈 POST al back
+      console.log("Login OK:", data);
+      // redirige donde quieras
+      const role = localStorage.getItem("role");
+      if (role === "vendor") navigate("/sell");
+      else navigate("/search");
+    } catch (err) {
+      alert("Login fallido: " + err.message);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="auth-layout">
-      {/* Columna izquierda con imagen */}
       <div className="auth-info">
         <h1>Bienvenido a <span>HouseLink</span></h1>
-        <p>
-          Conéctate con miles de compradores y vendedores.  
-          Encuentra tu hogar ideal con nuestra plataforma.
-        </p>
-        <img src={houseImg} alt="House" />   {/* 👈 usas la importación */}
+        <p>Conéctate con miles de compradores y vendedores.</p>
+        <img src={houseImg} alt="House" />
       </div>
 
-      {/* Columna derecha con el form */}
       <div className="auth-form">
         <div className="form-container">
           <h2>Login</h2>
           <form onSubmit={handleSubmit}>
             <input
-              type="email"
+              type="text"
               name="email"
-              placeholder="Email"
+              placeholder="Email o usuario"
               value={formData.email}
               onChange={handleChange}
               required
@@ -58,18 +66,14 @@ export default function Login() {
                 className="eye-btn"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? (
-                  <AiOutlineEyeInvisible size={20} />
-                ) : (
-                  <AiOutlineEye size={20} />
-                )}
+                {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}
               </button>
             </div>
-            <button type="submit">Login</button>
+            <button type="submit" disabled={loading}>
+              {loading ? "Entrando..." : "Login"}
+            </button>
           </form>
-          <p>
-            ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
-          </p>
+          <p>¿No tienes cuenta? <Link to="/register">Regístrate</Link></p>
         </div>
       </div>
     </div>
