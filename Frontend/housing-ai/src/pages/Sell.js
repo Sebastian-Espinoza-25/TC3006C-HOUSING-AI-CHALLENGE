@@ -6,30 +6,39 @@
  * to key actions such as publishing new property listings, viewing their existing listings,
  * and managing messages from interested clients.
  */
- 
+
+import { Link } from "react-router-dom";
 import "../styles/seller.css";
 
 export default function Sell() {
-return (
+  return (
     <div className="sell-container">
-        {/* Animated welcome text */}
-        <div className="title-anim">
-            <div>Welcome,</div>
-            <div><span> Seller!</span></div>
+      {/* Animated welcome text */}
+      <div className="title-anim">
+        <div>Welcome,</div>
+        <div>
+          <span> Seller!</span>
         </div>
+      </div>
 
-        {/* Subtitle */}
-        <p className="subtitle">
-            Manage your properties, publish listings, and stay in touch
-            with interested clients.
-        </p>
+      {/* Subtitle */}
+      <p className="subtitle">
+        Manage your properties, publish listings, and stay in touch
+        with interested clients.
+      </p>
 
-        {/* Button box */}
-        <section className="button-bar">
-            <button className="glass-btn">Publish Listing</button>
-            <button className="glass-btn">My Listings</button>
-            <button className="glass-btn">Messages</button>
-        </section>
+      {/* Button box */}
+      <section className="button-bar">
+        <Link to="/sell/publish" className="glass-btn">
+          Publish Listing
+        </Link>
+        <Link to="/sell/listings" className="glass-btn">
+          My Listings
+        </Link>
+        <Link to="/sell/messages" className="glass-btn">
+          Messages
+        </Link>
+      </section>
     </div>
-);
+  );
 }

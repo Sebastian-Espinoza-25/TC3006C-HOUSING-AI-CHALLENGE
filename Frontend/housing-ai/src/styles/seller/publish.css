@@ -1,0 +1,47 @@
+.publish-page {
+  padding: 2rem 1rem;
+  text-align: left;
+}
+
+.publish-header {
+  margin-bottom: 2rem;
+}
+
+.publish-title {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  color: #1E3A8A;
+  margin-bottom: .5rem;
+}
+
+.publish-subtitle {
+  font-size: 1rem;
+  color: #475569;
+}
+
+.publish-form {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 600px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: .35rem;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: .65rem .75rem;
+  border: 1px solid #CBD5E1;
+  border-radius: .5rem;
+  font-size: 1rem;
+}
+
+.publish-form button {
+  width: fit-content;
+}
