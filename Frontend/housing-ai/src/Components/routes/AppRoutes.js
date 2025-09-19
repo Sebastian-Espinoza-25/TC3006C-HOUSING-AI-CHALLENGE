@@ -9,6 +9,7 @@ import About from "../../pages/About";
 import RequireAuth from "../../guards/RequireAuth";
 import Publish from "../../pages/seller/publish";
 import Preferences from "../../pages/buyer/Preferences";
+import Listings from "../../pages/seller/listings";
 
 export default function AppRoutes() {
   return (
@@ -45,6 +46,15 @@ export default function AppRoutes() {
           </RequireAuth>
         }
       />
+      <Route
+        path="/sell/listings"
+        element={
+          <RequireAuth>
+            <Listings />
+          </RequireAuth>
+        }
+      />
+      {/* Ruta para preferencias del comprador */}
       <Route
         path="/preferences"
         element={
