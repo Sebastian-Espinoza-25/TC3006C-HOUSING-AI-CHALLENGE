@@ -15,11 +15,8 @@ const getAuthToken = () => {
 
 const getClientIdFromLocalStorage = () => {
   try {
-    // intentos directos
     const direct = localStorage.getItem("clientId") || localStorage.getItem("client_id");
     if (direct) return Number(direct);
-
-    // estructuras comunes
     const raw =
       localStorage.getItem("client") ||
       localStorage.getItem("user") ||
@@ -41,6 +38,35 @@ const getClientIdFromLocalStorage = () => {
   }
 };
 
+/* ====== cargar fotos de HouseFotos (Vite o CRA) ====== */
+const loadHousePhotos = () => {
+  // 1) Vite (seguro: si no matchea, regresa {} sin fallar)
+  try {
+    if (typeof import.meta !== "undefined" && import.meta && typeof import.meta.glob === "function") {
+      const mods = import.meta.glob("../Assets/HouseFotos/*.{png,jpg,jpeg,webp,avif,gif}", { eager: true });
+      return Object.values(mods).map((m) => m?.default || m).filter(Boolean);
+    }
+  } catch {}
+
+  // 2) CRA/Webpack: usa SOLO la ruta con casing correcto
+  try {
+    const ctx = require.context("../Assets/HouseFotos", false, /\.(png|jpe?g|webp|avif|gif)$/i);
+    return ctx.keys().map((k) => ctx(k)?.default || ctx(k)).filter(Boolean);
+  } catch (e) {
+    console.error("No se pudo cargar imágenes de Assets/HouseFotos:", e);
+    return [];
+  }
+};
+
+const HOUSE_PHOTOS = loadHousePhotos();
+
+const pickPhotoForHouse = (houseId) => {
+  if (!HOUSE_PHOTOS.length) return null;
+  const idNum = Number(houseId);
+  const idx = Number.isFinite(idNum) ? idNum % HOUSE_PHOTOS.length : Math.floor(Math.random() * HOUSE_PHOTOS.length);
+  return HOUSE_PHOTOS[idx];
+};
+
 // ----- UI atoms -----
 function DetailRow({ label, value }) {
   if (value === null || value === undefined || value === "") return null;
@@ -56,6 +82,8 @@ function HouseCard({ match, expanded, onToggle }) {
   const { house, vendor } = match || {};
   const title = house?.title || "Sin título";
   const price = house?.sale_price;
+
+  const imgUrl = useMemo(() => pickPhotoForHouse(house?.house_id), [house?.house_id]);
 
   const tags = useMemo(() => {
     const out = [];
@@ -77,7 +105,12 @@ function HouseCard({ match, expanded, onToggle }) {
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onToggle()}
     >
       <div className="rec-head">
-        <div className="rec-img" aria-hidden="true" />
+        {/* Imagen de la casa (si no hay fotos, deja el estilo por defecto de .rec-img) */}
+        <div
+          className="rec-img"
+          aria-hidden="true"
+          style={imgUrl ? { backgroundImage: `url(${imgUrl})` } : undefined}
+        />
         <div className="rec-main">
           <h4 className="rec-title">{title}</h4>
           <div className="rec-tags">
@@ -140,12 +173,10 @@ export default function Recommendations() {
   const [err, setErr] = useState("");
   const [openId, setOpenId] = useState(null);
 
-  // Lee clientId del localStorage una sola vez
   useEffect(() => {
     setClientId(getClientIdFromLocalStorage());
   }, []);
 
-  // Fetch cuando ya tenemos clientId
   useEffect(() => {
     const fetchRecs = async () => {
       try {
