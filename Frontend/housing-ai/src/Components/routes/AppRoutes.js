@@ -7,6 +7,7 @@ import Login from "../../pages/Login";
 import Register from "../../pages/Register";
 import About from "../../pages/About";
 import RequireAuth from "../../guards/RequireAuth";
+import Preferences from "../../pages/buyer/Preferences";
 
 export default function AppRoutes() {
   return (
@@ -33,6 +34,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Sell />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/preferences"
+        element={
+          <RequireAuth>
+            <Preferences />
           </RequireAuth>
         }
       />
