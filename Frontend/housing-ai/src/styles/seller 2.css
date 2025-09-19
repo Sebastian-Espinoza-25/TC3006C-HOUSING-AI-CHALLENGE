@@ -155,24 +155,20 @@
  * Includes hover effects for interactivity.
  */
 .glass-btn {
-  display: inline-block;    /* para que se comporte como bloque */
-  text-decoration: none;    /* quitar subrayado */
-  text-align: center;       /* centrar el texto */
-  padding: 1.5rem 2.5rem;
-  border: none;
-  border-radius: 16px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  cursor: pointer;
-  color: #fff;
-
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-
-  transition: all 0.3s ease;
-  min-width: 200px;
+    padding: 1.5rem 2.5rem;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.2rem;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+    cursor: pointer;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    min-width: 200px;
 }
 
 /* 
@@ -180,7 +176,7 @@
  * Increases background opacity, adds shadow, and slightly lifts the button for feedback.
  */
 .glass-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 }

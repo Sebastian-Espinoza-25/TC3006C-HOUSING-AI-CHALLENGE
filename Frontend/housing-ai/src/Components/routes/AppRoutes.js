@@ -7,6 +7,7 @@ import Login from "../../pages/Login";
 import Register from "../../pages/Register";
 import About from "../../pages/About";
 import RequireAuth from "../../guards/RequireAuth";
+import Publish from "../../pages/seller/publish";
 
 export default function AppRoutes() {
   return (
@@ -33,6 +34,14 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Sell />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/sell/publish"
+        element={
+          <RequireAuth>
+            <Publish />
           </RequireAuth>
         }
       />
