@@ -1,29 +1,33 @@
+# app/__init__.py (fragmento)
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 from config import Config
 
-# Inicializar extensiones
 db = SQLAlchemy()
+jwt = JWTManager()
 
 def create_app():
     app = Flask(__name__)
-    
-    # Configurar la aplicación
     app.config.from_object(Config)
-    
-    # Configurar CORS para permitir requests del frontend
-    CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
-    
-    # Inicializar extensiones con la aplicación
+
+    CORS(app, origins=["http://localhost:3000","http://127.0.0.1:3000"],
+         allow_headers=["Content-Type","Authorization"])
+
     db.init_app(app)
-    
-    # Registrar rutas
+    jwt.init_app(app)
+
     from .routes import main
     app.register_blueprint(main)
-    
-    # Crear tablas de la base de datos
+
+    # 👇 ESTO ES CLAVE para que /api/auth/login exista
+    from .auth import auth_bp
+    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+
     with app.app_context():
         db.create_all()
 
+    # útil para depurar: imprime todas las rutas
+    print(app.url_map)
     return app
