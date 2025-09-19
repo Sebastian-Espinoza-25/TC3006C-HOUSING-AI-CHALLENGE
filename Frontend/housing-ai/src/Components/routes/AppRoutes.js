@@ -17,11 +17,10 @@ export default function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/login" element={<Login />} />
-      {/* usa minúsculas para evitar problemas de routing */}
       <Route path="/register" element={<Register />} />
       <Route path="/about" element={<About />} />
 
-      {/* Privadas (protegidas con token) */}
+      {/* Privadas */}
       <Route
         path="/search"
         element={
@@ -43,6 +42,10 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Publish />
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/preferences"
         element={
           <RequireAuth>
