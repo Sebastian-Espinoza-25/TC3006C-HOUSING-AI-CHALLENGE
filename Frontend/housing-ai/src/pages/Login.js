@@ -10,12 +10,6 @@ import { login } from "../services/auth";
  * Ajusta si tu backend usa otra forma.
  */
 function extractVendorId(data) {
-  // Casos frecuentes:
-  // data.vendor.id          -> { vendor: { id: 3, ... } }
-  // data.user.vendorId      -> { user: { vendorId: 3, ... } }
-  // data.vendorId           -> { vendorId: 3 }
-  // data.user.vendor.id     -> { user: { vendor: { id: 3 } } }
-  // data.profile.vendor_id  -> { profile: { vendor_id: 3 } }
   return (
     data?.vendor?.id ??
     data?.user?.vendorId ??
@@ -63,33 +57,26 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Llama a tu servicio de autenticación
       const data = await login(formData.email, formData.password);
       console.log("Login OK:", data);
 
-      // 1) Token (si lo tienes)
       const token = extractToken(data);
       if (token) {
         localStorage.setItem("token", token);
       }
 
-      // 2) Guardar user completo (si te sirve después)
-      //    Evita guardar datos sensibles.
       localStorage.setItem("user", JSON.stringify(data?.user ?? data));
 
-      // 3) Role (para routing)
       const role = extractRole(data);
       if (role) {
         localStorage.setItem("role", role);
       }
 
-      // 4) VendorId (lo que necesitas para /vendors/{id}/houses)
       const vendorId = extractVendorId(data);
       if (vendorId !== null && vendorId !== undefined) {
         localStorage.setItem("vendorId", String(vendorId));
       }
 
-      // 5) Redirige según role (o como prefieras)
       if (role === "vendor") navigate("/sell");
       else navigate("/search");
     } catch (err) {
@@ -102,14 +89,21 @@ export default function Login() {
 
   return (
     <div className="auth-layout">
+      {/* Panel azul con contenido dividido en bloques */}
       <div className="auth-info">
-        <h1>
-          Bienvenido a <span>HouseLink</span>
-        </h1>
-        <p>Conéctate con miles de compradores y vendedores.</p>
-        <img src={houseImg} alt="House" />
+        <div className="auth-texts">
+          <h1>
+            Bienvenido a <span>HouseLink</span>
+          </h1>
+          <p>Conéctate con miles de compradores y vendedores.</p>
+        </div>
+
+        <div className="auth-image">
+          <img src={houseImg} alt="House" />
+        </div>
       </div>
 
+      {/* Formulario */}
       <div className="auth-form">
         <div className="form-container">
           <h2>Login</h2>
