@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { datasetMeta, quickDemoData } from "./publishData";
+import "../../styles/seller/publishForms.css"; // estilos
 
 // --- Utilidades de transformación ---
 const KEY_OVERRIDES = {
-  // quickFields + comunes del dataset de casas
   TotalSF: "total_sf",
   OverallQual: "overall_qual",
   OverallCond: "overall_cond",
@@ -26,8 +26,6 @@ const KEY_OVERRIDES = {
   "2ndFlrSF": "second_flr_sf",
   Fireplaces: "fireplaces",
   RoomsPlusBathEq: "rooms_plus_bath_eq",
-
-  // Extra comunes (por si usas el formulario largo)
   MSSubClass: "ms_sub_class",
   MSZoning: "ms_zoning",
   LotFrontage: "lot_frontage",
@@ -37,8 +35,6 @@ const KEY_OVERRIDES = {
   Alley: "alley",
   BldgType: "bldg_type",
   HouseStyle: "house_style",
-  OverallCond: "overall_cond",
-  YearRemodAdd: "year_remod_add",
   RoofStyle: "roof_style",
   Exterior1st: "exterior1st",
   Exterior2nd: "exterior2nd",
@@ -57,8 +53,6 @@ const KEY_OVERRIDES = {
   TotalBsmtSF: "total_bsmt_sf",
   HeatingQC: "heating_qc",
   Electrical: "electrical",
-  "1stFlrSF": "first_flr_sf", // refuerzo
-  "2ndFlrSF": "second_flr_sf", // refuerzo
   OpenPorchSF: "open_porch_sf",
   EnclosedPorch: "enclosed_porch",
   ThreeSsnPorch: "three_ssn_porch",
@@ -73,7 +67,6 @@ const KEY_OVERRIDES = {
   KitchenQual: "kitchen_qual",
   TotRmsAbvGrd: "tot_rms_abv_grd",
   Functional: "functional",
-  Fireplaces: "fireplaces",
   FireplaceQu: "fireplace_qu",
   GarageType: "garage_type",
   GarageYrBlt: "garage_yr_blt",
@@ -87,20 +80,20 @@ const KEY_OVERRIDES = {
 
 function toSnakeKey(key) {
   if (KEY_OVERRIDES[key] != null) return KEY_OVERRIDES[key];
-  // fallback genérico camelCase/PascalCase -> snake_case (mejor esfuerzo)
   return key
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
     .replace(/([A-Z]+)([A-Z][a-z0-9]+)/g, "$1_$2")
     .toLowerCase();
 }
-
 function toSnakeCaseObject(obj) {
   const out = {};
-  Object.keys(obj || {}).forEach((k) => {
-    out[toSnakeKey(k)] = obj[k];
-  });
+  Object.keys(obj || {}).forEach((k) => { out[toSnakeKey(k)] = obj[k]; });
   return out;
 }
+
+// formatea el precio (sin asumir moneda; si quieres MXN pon currency: 'MXN')
+const formatPrice = (v) =>
+  new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
 
 export default function Publish() {
   const [formType, setFormType] = useState(null); // "quick" | "long"
@@ -111,7 +104,6 @@ export default function Publish() {
   // Creación de casa
   const [showCreateCard, setShowCreateCard] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
-  const [createResult, setCreateResult] = useState(null);
   const [lastPayload, setLastPayload] = useState(null);
 
   // Campos adicionales (el usuario los llena). sale_price se precarga con el precio calculado (sin redondear).
@@ -123,49 +115,24 @@ export default function Publish() {
   });
 
   const quickFields = [
-    "TotalSF",
-    "OverallQual",
-    "OverallCond",
-    "GrLivArea",
-    "Neighborhood",
-    "TotalBath",
-    "LotArea",
-    "CentralAir",
-    "YearBuilt",
-    "RemodAge",
-    "YearRemodAdd",
-    "1stFlrSF",
-    "HouseAge",
-    "GarageArea",
-    "GarageScore",
-    "BsmtFinSF1",
-    "SaleCondition",
-    "TotalPorchSF",
-    "GarageCars",
-    "2ndFlrSF",
-    "Fireplaces",
-    "RoomsPlusBathEq",
+    "TotalSF","OverallQual","OverallCond","GrLivArea","Neighborhood","TotalBath","LotArea","CentralAir",
+    "YearBuilt","RemodAge","YearRemodAdd","1stFlrSF","HouseAge","GarageArea","GarageScore","BsmtFinSF1",
+    "SaleCondition","TotalPorchSF","GarageCars","2ndFlrSF","Fireplaces","RoomsPlusBathEq",
   ];
 
   // -------- Handlers --------
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field, value) => { setFormData((prev) => ({ ...prev, [field]: value })); };
 
   const handleDemo = () => {
-    if (formType === "quick") {
-      setFormData(quickDemoData);
-      return;
-    }
+    if (formType === "quick") { setFormData(quickDemoData); return; }
     const newData = {};
     const allFields = [
       ...Object.keys(datasetMeta.numeric_means),
       ...Object.keys(datasetMeta.categorical_uniques),
     ];
     allFields.forEach((f) => {
-      if (datasetMeta.numeric_means[f] !== undefined) {
-        newData[f] = datasetMeta.numeric_means[f];
-      } else if (datasetMeta.categorical_uniques[f]) {
+      if (datasetMeta.numeric_means[f] !== undefined) newData[f] = datasetMeta.numeric_means[f];
+      else if (datasetMeta.categorical_uniques[f]) {
         const opts = datasetMeta.categorical_uniques[f];
         newData[f] = opts[Math.floor(Math.random() * opts.length)];
       }
@@ -189,10 +156,7 @@ export default function Publish() {
       const data = await response.json();
       setPrediction(data);
 
-      // SIN redondear:
-      const predicted = Number(
-        data && data.predicted_price ? data.predicted_price : 0
-      );
+      const predicted = Number(data && data.predicted_price ? data.predicted_price : 0);
       setCreateData((prev) => ({ ...prev, sale_price: predicted }));
     } catch (err) {
       console.error("Error:", err);
@@ -204,16 +168,12 @@ export default function Publish() {
 
   const getVendorIdFromLocalStorage = () => {
     try {
-      // intenta varias ubicaciones comunes
+      const directVendorId = localStorage.getItem("vendorId");
+      if (directVendorId) return Number(directVendorId);
       const rawUser =
         localStorage.getItem("user") ||
         localStorage.getItem("auth") ||
         localStorage.getItem("profile");
-
-      // si guardaste vendorId directo:
-      const directVendorId = localStorage.getItem("vendorId");
-      if (directVendorId) return Number(directVendorId);
-
       if (!rawUser) return null;
       const parsed = JSON.parse(rawUser);
       return (
@@ -223,45 +183,25 @@ export default function Publish() {
         parsed?.user?.vendor_id ??
         null
       );
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   };
 
   const getAuthToken = () => {
-    try {
-      return localStorage.getItem("token") || localStorage.getItem("authToken") || null;
-    } catch {
-      return null;
-    }
+    try { return localStorage.getItem("token") || localStorage.getItem("authToken") || null; }
+    catch { return null; }
   };
 
-  const handleCreateHouse = () => {
-    setShowCreateCard(true);
-  };
-
-  const handleCreateDataChange = (field, value) => {
-    setCreateData((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleCreateHouse = () => { setShowCreateCard(true); };
+  const handleCreateDataChange = (field, value) => { setCreateData((prev) => ({ ...prev, [field]: value })); };
 
   const handleCreateHouseSubmit = async (e) => {
     e.preventDefault();
-
-    if (!lastPayload) {
-      alert("Primero calcula el precio enviando el formulario.");
-      return;
-    }
+    if (!lastPayload) { alert("Primero calcula el precio enviando el formulario."); return; }
 
     const vendorId = getVendorIdFromLocalStorage();
-    if (!vendorId) {
-      alert("No se encontró vendorId en localStorage. Inicia sesión nuevamente.");
-      return;
-    }
+    if (!vendorId) { alert("No se encontró vendorId en localStorage. Inicia sesión nuevamente."); return; }
 
-    // 1) Convierte TODOS los atributos del formulario a snake_case
     const snakeFromForm = toSnakeCaseObject(lastPayload);
-
-    // 2) Construye el payload final en snake_case (sin redondear sale_price)
     const createPayload = {
       ...snakeFromForm,
       title: createData.title,
@@ -271,7 +211,7 @@ export default function Publish() {
       predicted_price: prediction ? prediction.predicted_price : undefined,
       model_type: prediction ? prediction.model_type : undefined,
       vendor_id: Number(vendorId),
-      status: "available", // opcional: quítalo si tu backend lo asigna por defecto
+      status: "available",
     };
 
     try {
@@ -291,10 +231,11 @@ export default function Publish() {
         throw new Error(errText || "Error creando la casa");
       }
       const json = await res.json();
-      setCreateResult(json);
+      console.log("✅ Casa creada:", json);
       alert("Casa creada exitosamente");
+      setShowCreateCard(false);
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error al crear la casa:", err);
       alert("Error al crear la casa (ver consola).");
     } finally {
       setCreateLoading(false);
@@ -307,145 +248,150 @@ export default function Publish() {
 
     if (!isNumeric && datasetMeta.categorical_uniques[field]) {
       return (
-        <div key={field}>
-          <label>
-            {field}:{" "}
-            <select
-              value={formData[field] ?? ""}
-              onChange={(e) => handleChange(field, e.target.value)}
-            >
-              <option value="">Select...</option>
-              {datasetMeta.categorical_uniques[field].map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="field" key={field}>
+          <label>{field}</label>
+          <select
+            className="input"
+            value={formData[field] ?? ""}
+            onChange={(e) => handleChange(field, e.target.value)}
+          >
+            <option value="">Select...</option>
+            {datasetMeta.categorical_uniques[field].map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </div>
       );
     }
 
     return (
-      <div key={field}>
-        <label>
-          {field}:{" "}
-          <input
-            type="number"
-            value={formData[field] ?? ""}
-            onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)}
-          />
-        </label>
+      <div className="field" key={field}>
+        <label>{field}</label>
+        <input
+          className="input"
+          type="number"
+          value={formData[field] ?? ""}
+          onChange={(e) => handleChange(field, parseFloat(e.target.value) || 0)}
+        />
       </div>
     );
   };
 
   // -------- Render --------
   return (
-    <div>
-      <h1>Publish a New Listing</h1>
+    <div className="pref-page">
+      <div className="pref-container">
+        <h1 className="pref-title">Publish a New House</h1>
+        <p className="pref-subtitle">Fill in the form to predict a house price.</p>
 
-      {!formType && (
-        <div>
-          <button onClick={() => setFormType("quick")}>Quick Form</button>
-          <button onClick={() => setFormType("long")}>Long Form</button>
-        </div>
-      )}
+        {!formType && (
+          <div className="form-actions">
+            <button className="btn" onClick={() => setFormType("quick")}>Quick Form</button>
+            {/* Eliminado el botón de Long Form */}
+          </div>
+        )}
 
-      {formType && (
-        <form onSubmit={handleSubmit}>
-          <button type="button" onClick={handleDemo}>Demo</button>
+        {formType && (
+          <form className="pref-form" onSubmit={handleSubmit}>
+            <div className="pref-section">
+              <div className="form-actions">
+                <button type="button" className="btn ghost" onClick={handleDemo}>Demo</button>
+              </div>
 
-          {(formType === "quick"
-            ? quickFields
-            : [
-                ...Object.keys(datasetMeta.numeric_means),
-                ...Object.keys(datasetMeta.categorical_uniques),
-              ]
-          ).map((f) => renderField(f))}
+              <h3 className="section-title">Form</h3>
 
-          <button type="submit">{loading ? "Submitting..." : "Submit"}</button>
-        </form>
-      )}
+              <div className="grid-2">
+                {quickFields.map((f) => renderField(f))}
+              </div>
 
-      {prediction && (
-        <div>
-          <h2>Prediction Result:</h2>
-          <pre>{JSON.stringify(prediction, null, 2)}</pre>
-
-          {!showCreateCard && (
-            <button onClick={handleCreateHouse}>Crea tu casa ahora</button>
-          )}
-        </div>
-      )}
-
-      {showCreateCard && (
-        <div>
-          <h3>Detalles de la publicación</h3>
-          <form onSubmit={handleCreateHouseSubmit}>
-            <div>
-              <label>
-                Título:{" "}
-                <input
-                  type="text"
-                  value={createData.title}
-                  placeholder="Título del anuncio"
-                  onChange={(e) => handleCreateDataChange("title", e.target.value)}
-                  required
-                />
-              </label>
+              <div className="form-actions">
+                <button type="submit" className="btn" disabled={loading}>
+                  {loading ? "Submitting..." : "Submit"}
+                </button>
+              </div>
             </div>
-
-            <div>
-              <label>
-                Precio de venta (calculado):{" "}
-                <input
-                  type="number"
-                  value={createData.sale_price}
-                  readOnly
-                />
-              </label>
-            </div>
-
-            <div>
-              <label>
-                Teléfono de contacto:{" "}
-                <input
-                  type="tel"
-                  value={createData.contact_phone}
-                  placeholder="Ej. 555-0123"
-                  onChange={(e) => handleCreateDataChange("contact_phone", e.target.value)}
-                  required
-                />
-              </label>
-            </div>
-
-            <div>
-              <label>
-                Email de contacto:{" "}
-                <input
-                  type="email"
-                  value={createData.contact_email}
-                  placeholder="vendor@example.com"
-                  onChange={(e) => handleCreateDataChange("contact_email", e.target.value)}
-                  required
-                />
-              </label>
-            </div>
-
-            <button type="submit" disabled={createLoading}>
-              {createLoading ? "Creando..." : "Crear casa"}
-            </button>
           </form>
+        )}
 
-          {createResult && (
-            <div>
-              <strong>Respuesta del servidor:</strong>
-              <pre>{JSON.stringify(createResult, null, 2)}</pre>
+        {prediction && (
+          <div className="pref-section">
+            <h3 className="section-title">PRICE</h3>
+            <div className="pref-title" style={{ fontSize: "clamp(22px, 4vw, 36px)", margin: 0 }}>
+              {formatPrice(prediction?.predicted_price)}
             </div>
-          )}
-        </div>
-      )}
+
+            {!showCreateCard && (
+              <div className="form-actions">
+                <button className="btn" onClick={handleCreateHouse}>Crea tu casa ahora</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {showCreateCard && (
+          <div className="pref-section">
+            <h3 className="section-title">Detalles de la publicación</h3>
+            <form className="pref-form" onSubmit={handleCreateHouseSubmit}>
+              <div className="grid-2">
+                <div className="field">
+                  <label>Título</label>
+                  <input
+                    className="input"
+                    type="text"
+                    value={createData.title}
+                    placeholder="Título del anuncio"
+                    onChange={(e) => handleCreateDataChange("title", e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label>Precio de venta (calculado)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    value={createData.sale_price}
+                    readOnly
+                  />
+                </div>
+
+                <div className="field">
+                  <label>Teléfono de contacto</label>
+                  <input
+                    className="input"
+                    type="tel"
+                    value={createData.contact_phone}
+                    placeholder="Ej. 555-0123"
+                    onChange={(e) => handleCreateDataChange("contact_phone", e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="field">
+                  <label>Email de contacto</label>
+                  <input
+                    className="input"
+                    type="email"
+                    value={createData.contact_email}
+                    placeholder="vendor@example.com"
+                    onChange={(e) => handleCreateDataChange("contact_email", e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn" disabled={createLoading}>
+                  {createLoading ? "Creando..." : "Crear casa"}
+                </button>
+                <button type="button" className="btn ghost" onClick={() => setShowCreateCard(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
