@@ -74,6 +74,25 @@ export default function AppRoutes() {
       />
       <Route
         path="/publish"
+        element={
+          <RequireAuth>
+            <RoleGate allow={["vendor"]}>
+              <Publish />
+            </RoleGate>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/listings"
+        element={
+          <RequireAuth>
+            <RoleGate allow={["vendor"]}>
+              <Listings />
+            </RoleGate>
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/sell/listings"
         element={
           <RequireAuth>
