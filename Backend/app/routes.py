@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from .services import ClientService, VendorService, HouseService, PreferencesService
+from .services import ClientService, VendorService, HouseService, PreferencesService, AIService
 
 main = Blueprint("main", __name__)
 
@@ -27,7 +27,12 @@ def home():
             # Preferences / Matching
             "create_or_update_preferences": "POST /api/clients/<client_id>/preferences",
             "delete_preferences": "DELETE /api/clients/<client_id>/preferences",
-            "recommendations": "GET /api/clients/<client_id>/recommendations"
+            "recommendations": "GET /api/clients/<client_id>/recommendations",
+            # AI Models
+            "ai_predict_complex": "POST /api/ai/predict/complex",
+            "ai_predict_simple": "POST /api/ai/predict/simple",
+            "ai_predict_both": "POST /api/ai/predict/both",
+            "ai_models_status": "GET /api/ai/models/status"
         }
     })
 
@@ -198,5 +203,59 @@ def get_recommendations(client_id):
         if result.get("client") is None:
             return jsonify({"error": "Cliente no encontrado"}), 404
         return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# AI MODELS
+
+@main.route("/api/ai/predict/complex", methods=["POST"])
+def predict_complex():
+    """Predicción de precio usando el modelo complejo (todas las características)"""
+    try:
+        data = request.get_json(silent=True) or {}
+        if not data:
+            return jsonify({"error": "Datos de entrada requeridos"}), 400
+        
+        result = AIService.predict_complex(data)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@main.route("/api/ai/predict/simple", methods=["POST"])
+def predict_simple():
+    """Predicción de precio usando el modelo sencillo (top 20 características)"""
+    try:
+        data = request.get_json(silent=True) or {}
+        if not data:
+            return jsonify({"error": "Datos de entrada requeridos"}), 400
+        
+        result = AIService.predict_simple(data)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@main.route("/api/ai/predict/both", methods=["POST"])
+def predict_both():
+    """Predicción usando ambos modelos para comparar resultados"""
+    try:
+        data = request.get_json(silent=True) or {}
+        if not data:
+            return jsonify({"error": "Datos de entrada requeridos"}), 400
+        
+        result = AIService.predict_both(data)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@main.route("/api/ai/models/status", methods=["GET"])
+def ai_models_status():
+    """Obtener el estado de los modelos de IA"""
+    try:
+        status = AIService.get_model_status()
+        return jsonify(status)
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500

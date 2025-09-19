@@ -27,6 +27,12 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        
+        # Cargar modelos de IA al iniciar la aplicación
+        from .services import AIService
+        print("🔄 Cargando modelos de IA...")
+        AIService.load_models()
+        print("✅ Modelos de IA cargados correctamente")
 
     # útil para depurar: imprime todas las rutas
     print(app.url_map)

@@ -1,0 +1,22 @@
+{
+  "TotalSF": 2500.0,
+  "OverallQual": 7.0,
+  "OverallCond": 5.0,
+  "GrLivArea": 1500.0,
+  "Neighborhood": "NAmes",
+  "TotalBath": 2.5,
+  "LotArea": 8450.0,
+  "CentralAir": "Y",
+  "YearBuilt": 2003.0,
+  "RemodAge": 5.0,
+  "YearRemodAdd": 2008.0,
+  "1stFlrSF": 1000.0,
+  "HouseAge": 21.0,
+  "GarageArea": 548.0,
+  "GarageScore": 6.0,
+  "BsmtFinSF1": 400.0,
+  "SaleCondition": "Normal",
+  "TotalPorchSF": 200.0,
+  "GarageCars": 2.0,
+  "2ndFlrSF": 500.0
+}
