@@ -173,6 +173,17 @@ class VendorService:
 # House Service 
 class HouseService:
     @staticmethod
+    def get_houses_by_vendor(vendor_id):
+        """
+        Retorna todas las casas que pertenecen a un vendor_id.
+        """
+        vendor = Vendor.query.get(vendor_id)
+        if not vendor:
+            return None
+        houses = VendorHouse.query.filter_by(vendor_id=vendor_id).all()
+        return [h.to_dict() for h in houses]
+    
+    @staticmethod
     def create_house(vendor_id, house_data):
         """
         Create a house for a vendor.
