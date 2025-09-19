@@ -1,0 +1,275 @@
+/* =======================================================
+   publishForms.css — Estilo claro cálido / Apple-like
+   ======================================================= */
+
+/* ---------- Variables (paleta cálida) ---------- */
+:root{
+  --bg: #f6f3ef;                 /* beige claro del lienzo */
+  --bg-2: #f9f7f3;               /* tono para degradados */
+  --glass: rgba(255,255,255,.72);
+  --glass-strong: rgba(255,255,255,.82);
+  --stroke: rgba(30,41,59,.10);  /* borde sutil */
+  --text: #222426;               /* texto principal */
+  --muted: #6b7280;              /* subtítulos */
+  --hint: #8c9198;               /* labels */
+  --primary: #bfa981;            /* beige-dorado para botones */
+  --primary-ink: #ffffff;
+  --accent: #c6d9ff;             /* focus ring suave */
+  --error: #d94a4a;
+
+  --radius-xl: 24px;
+  --radius-lg: 16px;
+  --shadow-1: 0 12px 28px rgba(17, 24, 39, .12);
+  --shadow-2: 0 8px 20px rgba(17, 24, 39, .10);
+  --blur: 18px;
+}
+
+/* ---------- Página ---------- */
+.pref-page{
+  min-height: 100dvh;
+  padding: clamp(16px, 2vw, 32px);
+  background:
+    radial-gradient(1100px 600px at 85% -10%, #e7dcc9 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 90%, #f2eadb 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", Segoe UI, Roboto, "Helvetica Neue", Arial;
+  display: grid;
+  place-items: start center;
+}
+
+/* ---------- Contenedor ---------- */
+.pref-container{
+  width: min(1100px, 100%);
+  background: var(--glass);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-1);
+  backdrop-filter: blur(var(--blur)) saturate(1.05);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.05);
+  padding: clamp(20px, 3vw, 36px);
+  position: relative;
+  overflow: clip;
+}
+
+/* suave banda superior */
+.pref-container::before{
+  content:"";
+  position:absolute; inset:-1px -1px auto -1px; height:58px;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0));
+  pointer-events:none;
+}
+
+/* ---------- Headings ---------- */
+.pref-title{
+  font-size: clamp(28px, 4.2vw, 52px);
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing:.3px;
+  text-align:center;
+  margin: 6px 0 4px;
+  color: #1f2937;
+  text-shadow: 0 1px 0 #fff;
+}
+.pref-subtitle{
+  text-align:center;
+  color: var(--muted);
+  margin: 0 0 24px;
+  font-size: clamp(14px, 1.6vw, 18px);
+}
+
+/* ---------- Formulario ---------- */
+.pref-form{
+  display: grid;
+  gap: clamp(16px, 2.2vw, 24px);
+}
+
+.pref-section{
+  background: var(--glass-strong);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-lg);
+  padding: clamp(14px, 2vw, 20px);
+  box-shadow: var(--shadow-2);
+}
+
+.section-title{
+  font-size: clamp(16px, 2.2vw, 20px);
+  font-weight: 750;
+  margin: 0 0 14px 2px;
+  color: #2b3136;
+  display:flex; align-items:center; gap:10px;
+}
+.section-title::after{
+  content:"";
+  flex:1 1 auto; height:1px; margin-left:6px;
+  background: linear-gradient(90deg,var(--stroke),transparent);
+}
+
+/* ---------- Layout de campos ---------- */
+.grid-2{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: clamp(12px, 2vw, 18px);
+}
+@media (max-width: 820px){
+  .grid-2{ grid-template-columns: 1fr; }
+}
+
+.field{ display:flex; flex-direction:column; gap:8px; }
+.field label{
+  font-size: 13px;
+  color: var(--hint);
+  letter-spacing:.2px;
+}
+
+/* ---------- Inputs & Selects ---------- */
+.input{
+  appearance: none;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.86));
+  color: var(--text);
+  outline: none;
+  transition: box-shadow .18s ease, border-color .18s ease, transform .08s ease, background .18s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+.input::placeholder{ color: #9aa1a9; }
+
+.input:hover{
+  border-color: rgba(191, 169, 129, .45); /* beige-dorado */
+  background: linear-gradient(180deg, #ffffff, #fafafa);
+}
+.input:focus{
+  border-color: rgba(191, 169, 129, .75);
+  box-shadow:
+    0 0 0 3px rgba(198, 217, 255, .55),
+    0 8px 20px rgba(17,24,39,.10);
+  transform: translateY(-1px);
+}
+
+/* estados */
+.input.error{
+  border-color: color-mix(in oklab, var(--error), #fff 10%);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--error), transparent 70%);
+}
+.input:disabled{
+  opacity:.7;
+  cursor:not-allowed;
+}
+
+/* ---------- Rangos numéricos (si los usas) ---------- */
+.range-row{ display:flex; flex-direction:column; gap:8px; }
+.range-label{
+  font-size: 13px; color: var(--hint); margin-left:2px;
+}
+.range-inputs{
+  display:grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px; align-items:center;
+}
+.range-sep{
+  color: var(--hint);
+  font-weight: 700;
+  opacity:.7;
+}
+
+/* ---------- Mensajes ---------- */
+.field-hint{ font-size:12px; color: var(--hint); margin-top:2px; }
+.error-text{ color: var(--error); }
+.global-error{
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fdecec;
+  border: 1px solid #f7c8c8;
+  color: #8b1d1d;
+}
+
+/* Bonito para <pre> (JSON de predicción / respuesta) */
+.pref-section pre{
+  background: #ffffff;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 6px 0 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* ---------- Botones ---------- */
+.btn{
+  --btn-bg: linear-gradient(180deg, color-mix(in oklab, var(--primary), #fff 16%), var(--primary));
+  --btn-ink: var(--primary-ink);
+
+  display:inline-flex; align-items:center; justify-content:center;
+  gap:.6rem; text-align:center; cursor:pointer;
+  padding: 12px 18px;
+  font-weight: 700;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--primary), #000 12%);
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  box-shadow: 0 10px 24px rgba(191,169,129,.28);
+  transition: transform .08s ease, box-shadow .2s ease, filter .2s ease;
+  user-select:none;
+}
+.btn:hover{
+  filter: brightness(1.03);
+  box-shadow: 0 12px 28px rgba(191,169,129,.30);
+  transform: translateY(-1px);
+}
+.btn:active{ transform: translateY(0); }
+
+.btn:focus{
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(198, 217, 255, .55),
+    0 10px 24px rgba(191,169,129,.28);
+}
+
+.btn:disabled{
+  opacity:.7;
+  cursor:not-allowed;
+  filter: grayscale(.1);
+  box-shadow: none;
+}
+
+.btn.ghost{
+  background: linear-gradient(180deg, #ffffff, #fafafa);
+  color: #374151;
+  border: 1px solid var(--stroke);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85);
+}
+.btn.ghost:hover{
+  background: #ffffff;
+}
+
+/* contenedor de botones */
+.form-actions{
+  display:flex; gap:12px; justify-content:flex-end; margin-top: 4px;
+}
+@media (max-width: 640px){
+  .form-actions{ flex-direction:column; }
+  .btn{ width:100%; }
+}
+
+/* ---------- Select caret ---------- */
+select.input{
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.86)),
+    radial-gradient(6px 6px at calc(100% - 18px) 50%, #a8b0b9 55%, transparent 56%);
+  background-repeat: no-repeat;
+  background-position: 0 0, right 14px center;
+  background-size: auto, 12px 12px;
+  padding-right: 40px;
+}
+
+/* altura mínima de inputs en rangos (si aplica) */
+.range-inputs .input{ min-height: 44px; }
