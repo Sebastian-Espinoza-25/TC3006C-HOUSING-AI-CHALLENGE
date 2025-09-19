@@ -77,8 +77,31 @@ function YesNo({ label, value, onChange }) {
 
 /* ================== Componente ================== */
 
+// Obtiene el clientId desde localStorage (similar a publish.js)
+function getClientIdFromLocalStorage() {
+  try {
+    const directClientId = localStorage.getItem("clientId");
+    if (directClientId) return Number(directClientId);
+    const rawUser =
+      localStorage.getItem("user") ||
+      localStorage.getItem("auth") ||
+      localStorage.getItem("profile");
+    if (!rawUser) return null;
+    const parsed = JSON.parse(rawUser);
+    return (
+      parsed?.clientId ??
+      parsed?.client_id ??
+      parsed?.user?.clientId ??
+      parsed?.user?.client_id ??
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
 export default function Preferences() {
-  const clientId = 1; // TODO: reemplaza por el id real del cliente autenticado
+  const clientId = getClientIdFromLocalStorage(); 
 
   /* Categóricos del dataset (memo) */
   const U = useMemo(() => datasetSummary?.categorical_uniques ?? {}, []);
