@@ -53,6 +53,10 @@ CREATE TABLE client_preferences (
     max_year_built INT,
     min_year_remod_add INT,
     max_year_remod_add INT,
+    min_remod_age FLOAT,
+    max_remod_age FLOAT,
+    min_house_age FLOAT,
+    max_house_age FLOAT,
     
     -- Preferencias de tamaño y área
     min_lot_area FLOAT,
@@ -67,6 +71,8 @@ CREATE TABLE client_preferences (
     max_gr_liv_area FLOAT,
     min_total_bsmt_sf FLOAT,
     max_total_bsmt_sf FLOAT,
+    min_total_sf FLOAT,
+    max_total_sf FLOAT,
     
     -- Preferencias de habitaciones y baños
     min_bedroom_abv_gr INT,
@@ -83,6 +89,8 @@ CREATE TABLE client_preferences (
     max_bsmt_full_bath INT,
     min_bsmt_half_bath INT,
     max_bsmt_half_bath INT,
+    min_total_bath FLOAT,
+    max_total_bath FLOAT,
     
     -- Preferencias de sótano
     preferred_bsmt_qual VARCHAR(20),
@@ -125,6 +133,8 @@ CREATE TABLE client_preferences (
     preferred_garage_qual VARCHAR(20),
     preferred_garage_cond VARCHAR(20),
     preferred_paved_drive VARCHAR(20),
+    min_garage_score FLOAT,
+    max_garage_score FLOAT,
     
     -- Preferencias de porches y exteriores
     min_wood_deck_sf FLOAT,
@@ -137,6 +147,10 @@ CREATE TABLE client_preferences (
     max_3ssn_porch FLOAT,
     min_screen_porch FLOAT,
     max_screen_porch FLOAT,
+    min_total_porch_sf FLOAT,
+    max_total_porch_sf FLOAT,
+    min_rooms_plus_bath_eq FLOAT,
+    max_rooms_plus_bath_eq FLOAT,
     
     -- Preferencias de piscina
     min_pool_area FLOAT,
@@ -193,6 +207,8 @@ CREATE TABLE vendor_houses (
     -- Años de construcción y remodelación
     year_built     FLOAT,
     year_remod_add FLOAT,
+    remod_age      FLOAT,
+    house_age      FLOAT,
     
     -- Características del techo
     roof_style     VARCHAR(20),
@@ -228,18 +244,21 @@ CREATE TABLE vendor_houses (
     first_flr_sf   FLOAT,
     second_flr_sf  FLOAT,
     gr_liv_area    FLOAT,
+    total_sf       FLOAT,
     
     -- Baños
     bsmt_full_bath FLOAT,
     bsmt_half_bath FLOAT,
     full_bath      FLOAT,
     half_bath      FLOAT,
+    total_bath     FLOAT,
     
     -- Habitaciones
     bedroom_abv_gr FLOAT,
     kitchen_abv_gr FLOAT,
     kitchen_qual   VARCHAR(20),
     tot_rms_abv_grd FLOAT,
+    rooms_plus_bath_eq FLOAT,
     
     -- Funcionalidad
     functional     VARCHAR(20),
@@ -257,6 +276,7 @@ CREATE TABLE vendor_houses (
     garage_qual    VARCHAR(20),
     garage_cond    VARCHAR(20),
     paved_drive    VARCHAR(20),
+    garage_score   FLOAT,
     
     -- Porches y exteriores
     wood_deck_sf   FLOAT,
@@ -264,6 +284,7 @@ CREATE TABLE vendor_houses (
     enclosed_porch FLOAT,
     three_ssn_porch FLOAT,
     screen_porch   FLOAT,
+    total_porch_sf FLOAT,
     
     -- Piscina
     pool_area      FLOAT,

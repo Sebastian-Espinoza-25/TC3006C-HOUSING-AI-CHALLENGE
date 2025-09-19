@@ -8,6 +8,7 @@ import Register from "../../pages/Register";
 import About from "../../pages/About";
 import RequireAuth from "../../guards/RequireAuth";
 import Publish from "../../pages/seller/publish";
+import Preferences from "../../pages/buyer/Preferences";
 
 export default function AppRoutes() {
   return (
@@ -42,6 +43,10 @@ export default function AppRoutes() {
         element={
           <RequireAuth>
             <Publish />
+        path="/preferences"
+        element={
+          <RequireAuth>
+            <Preferences />
           </RequireAuth>
         }
       />

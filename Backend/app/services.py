@@ -208,14 +208,25 @@ class PreferencesService:
     @staticmethod
     def create_preference(client_id, preferences_data):
         try:
+            print(f"DEBUG: Creating preference for client_id: {client_id}")
+            print(f"DEBUG: Preferences data: {preferences_data}")
+            
             p = ClientPreferences.query.filter_by(client_id=client_id).first()
             if not p:
+                print("DEBUG: Creating new preference record")
                 p = ClientPreferences(client_id=client_id)
                 db.session.add(p)
+            else:
+                print("DEBUG: Updating existing preference record")
+            
             _assign_model_fields(p, preferences_data, exclude=('preference_id', 'client_id'))
             db.session.commit()
-            return p.to_dict()
-        except Exception:
+            
+            result = p.to_dict()
+            print(f"DEBUG: Final result: {result}")
+            return result
+        except Exception as e:
+            print(f"DEBUG: Error occurred: {str(e)}")
             db.session.rollback()
             raise
 
@@ -238,22 +249,35 @@ class PreferencesService:
         if not client:
             return {'client': None, 'matches': [], 'preferences_applied': None}
 
-        prefs = ClientPreferences.query.filter_by(client_id=client_id).first()
+        prefs = ClientPreferences.query.filter_by(client_id=client_id).order_by(ClientPreferences.preference_id.desc()).first()
         if not prefs:
             return {'client': client.to_dict(), 'matches': [], 'preferences_applied': None}
 
-        q = VendorHouse.query.filter(VendorHouse.status == 'available')
+        # Crear lista de condiciones OR
+        from sqlalchemy import or_, and_
+        conditions = []
+        
+        # Filtro base: solo casas disponibles
+        base_query = VendorHouse.query.filter(VendorHouse.status == 'available')
 
-        if prefs.min_sale_price is not None:
-            q = q.filter(VendorHouse.sale_price >= float(prefs.min_sale_price))
-        if prefs.max_sale_price is not None:
-            q = q.filter(VendorHouse.sale_price <= float(prefs.max_sale_price))
+        # Precio
+        if prefs.min_sale_price is not None and prefs.max_sale_price is not None:
+            conditions.append(
+                and_(VendorHouse.sale_price >= float(prefs.min_sale_price),
+                     VendorHouse.sale_price <= float(prefs.max_sale_price))
+            )
+        elif prefs.min_sale_price is not None:
+            conditions.append(VendorHouse.sale_price >= float(prefs.min_sale_price))
+        elif prefs.max_sale_price is not None:
+            conditions.append(VendorHouse.sale_price <= float(prefs.max_sale_price))
 
+        # Ubicación
         if prefs.preferred_neighborhood:
-            q = q.filter(VendorHouse.neighborhood == prefs.preferred_neighborhood)
+            conditions.append(VendorHouse.neighborhood == prefs.preferred_neighborhood)
         if prefs.preferred_ms_zoning:
-            q = q.filter(VendorHouse.ms_zoning == prefs.preferred_ms_zoning)
+            conditions.append(VendorHouse.ms_zoning == prefs.preferred_ms_zoning)
 
+        # Características exactas
         exact_string_cols = [
             ('preferred_bldg_type', 'bldg_type'),
             ('preferred_house_style', 'house_style'),
@@ -283,23 +307,125 @@ class PreferencesService:
         for pref_attr, house_col in exact_string_cols:
             val = getattr(prefs, pref_attr)
             if val:
-                q = q.filter(getattr(VendorHouse, house_col) == val)
+                conditions.append(getattr(VendorHouse, house_col) == val)
 
+        # Aire acondicionado
         if prefs.central_air_required:
-            q = q.filter(VendorHouse.central_air.in_(_truthy_strings()))
+            conditions.append(VendorHouse.central_air.in_(_truthy_strings()))
 
-        if prefs.min_bedroom_abv_gr is not None:
-            q = q.filter(VendorHouse.bedroom_abv_gr >= float(prefs.min_bedroom_abv_gr))
-        if prefs.max_bedroom_abv_gr is not None:
-            q = q.filter(VendorHouse.bedroom_abv_gr <= float(prefs.max_bedroom_abv_gr))
-        if prefs.min_full_bath is not None:
-            q = q.filter(VendorHouse.full_bath >= float(prefs.min_full_bath))
-        if prefs.max_full_bath is not None:
-            q = q.filter(VendorHouse.full_bath <= float(prefs.max_full_bath))
-        if prefs.min_gr_liv_area is not None:
-            q = q.filter(VendorHouse.gr_liv_area >= float(prefs.min_gr_liv_area))
-        if prefs.max_gr_liv_area is not None:
-            q = q.filter(VendorHouse.gr_liv_area <= float(prefs.max_gr_liv_area))
+        # Rangos numéricos
+        if prefs.min_bedroom_abv_gr is not None and prefs.max_bedroom_abv_gr is not None:
+            conditions.append(
+                and_(VendorHouse.bedroom_abv_gr >= float(prefs.min_bedroom_abv_gr),
+                     VendorHouse.bedroom_abv_gr <= float(prefs.max_bedroom_abv_gr))
+            )
+        elif prefs.min_bedroom_abv_gr is not None:
+            conditions.append(VendorHouse.bedroom_abv_gr >= float(prefs.min_bedroom_abv_gr))
+        elif prefs.max_bedroom_abv_gr is not None:
+            conditions.append(VendorHouse.bedroom_abv_gr <= float(prefs.max_bedroom_abv_gr))
+
+        if prefs.min_full_bath is not None and prefs.max_full_bath is not None:
+            conditions.append(
+                and_(VendorHouse.full_bath >= float(prefs.min_full_bath),
+                     VendorHouse.full_bath <= float(prefs.max_full_bath))
+            )
+        elif prefs.min_full_bath is not None:
+            conditions.append(VendorHouse.full_bath >= float(prefs.min_full_bath))
+        elif prefs.max_full_bath is not None:
+            conditions.append(VendorHouse.full_bath <= float(prefs.max_full_bath))
+
+        if prefs.min_gr_liv_area is not None and prefs.max_gr_liv_area is not None:
+            conditions.append(
+                and_(VendorHouse.gr_liv_area >= float(prefs.min_gr_liv_area),
+                     VendorHouse.gr_liv_area <= float(prefs.max_gr_liv_area))
+            )
+        elif prefs.min_gr_liv_area is not None:
+            conditions.append(VendorHouse.gr_liv_area >= float(prefs.min_gr_liv_area))
+        elif prefs.max_gr_liv_area is not None:
+            conditions.append(VendorHouse.gr_liv_area <= float(prefs.max_gr_liv_area))
+
+        # Nuevas columnas - Total Bath
+        if prefs.min_total_bath is not None and prefs.max_total_bath is not None:
+            conditions.append(
+                and_(VendorHouse.total_bath >= float(prefs.min_total_bath),
+                     VendorHouse.total_bath <= float(prefs.max_total_bath))
+            )
+        elif prefs.min_total_bath is not None:
+            conditions.append(VendorHouse.total_bath >= float(prefs.min_total_bath))
+        elif prefs.max_total_bath is not None:
+            conditions.append(VendorHouse.total_bath <= float(prefs.max_total_bath))
+
+        # Total SF
+        if prefs.min_total_sf is not None and prefs.max_total_sf is not None:
+            conditions.append(
+                and_(VendorHouse.total_sf >= float(prefs.min_total_sf),
+                     VendorHouse.total_sf <= float(prefs.max_total_sf))
+            )
+        elif prefs.min_total_sf is not None:
+            conditions.append(VendorHouse.total_sf >= float(prefs.min_total_sf))
+        elif prefs.max_total_sf is not None:
+            conditions.append(VendorHouse.total_sf <= float(prefs.max_total_sf))
+
+        # Remod Age
+        if prefs.min_remod_age is not None and prefs.max_remod_age is not None:
+            conditions.append(
+                and_(VendorHouse.remod_age >= float(prefs.min_remod_age),
+                     VendorHouse.remod_age <= float(prefs.max_remod_age))
+            )
+        elif prefs.min_remod_age is not None:
+            conditions.append(VendorHouse.remod_age >= float(prefs.min_remod_age))
+        elif prefs.max_remod_age is not None:
+            conditions.append(VendorHouse.remod_age <= float(prefs.max_remod_age))
+
+        # House Age
+        if prefs.min_house_age is not None and prefs.max_house_age is not None:
+            conditions.append(
+                and_(VendorHouse.house_age >= float(prefs.min_house_age),
+                     VendorHouse.house_age <= float(prefs.max_house_age))
+            )
+        elif prefs.min_house_age is not None:
+            conditions.append(VendorHouse.house_age >= float(prefs.min_house_age))
+        elif prefs.max_house_age is not None:
+            conditions.append(VendorHouse.house_age <= float(prefs.max_house_age))
+
+        # Garage Score
+        if prefs.min_garage_score is not None and prefs.max_garage_score is not None:
+            conditions.append(
+                and_(VendorHouse.garage_score >= float(prefs.min_garage_score),
+                     VendorHouse.garage_score <= float(prefs.max_garage_score))
+            )
+        elif prefs.min_garage_score is not None:
+            conditions.append(VendorHouse.garage_score >= float(prefs.min_garage_score))
+        elif prefs.max_garage_score is not None:
+            conditions.append(VendorHouse.garage_score <= float(prefs.max_garage_score))
+
+        # Total Porch SF
+        if prefs.min_total_porch_sf is not None and prefs.max_total_porch_sf is not None:
+            conditions.append(
+                and_(VendorHouse.total_porch_sf >= float(prefs.min_total_porch_sf),
+                     VendorHouse.total_porch_sf <= float(prefs.max_total_porch_sf))
+            )
+        elif prefs.min_total_porch_sf is not None:
+            conditions.append(VendorHouse.total_porch_sf >= float(prefs.min_total_porch_sf))
+        elif prefs.max_total_porch_sf is not None:
+            conditions.append(VendorHouse.total_porch_sf <= float(prefs.max_total_porch_sf))
+
+        # Rooms Plus Bath Eq
+        if prefs.min_rooms_plus_bath_eq is not None and prefs.max_rooms_plus_bath_eq is not None:
+            conditions.append(
+                and_(VendorHouse.rooms_plus_bath_eq >= float(prefs.min_rooms_plus_bath_eq),
+                     VendorHouse.rooms_plus_bath_eq <= float(prefs.max_rooms_plus_bath_eq))
+            )
+        elif prefs.min_rooms_plus_bath_eq is not None:
+            conditions.append(VendorHouse.rooms_plus_bath_eq >= float(prefs.min_rooms_plus_bath_eq))
+        elif prefs.max_rooms_plus_bath_eq is not None:
+            conditions.append(VendorHouse.rooms_plus_bath_eq <= float(prefs.max_rooms_plus_bath_eq))
+
+        # Aplicar condiciones OR si hay alguna
+        if conditions:
+            q = base_query.filter(or_(*conditions))
+        else:
+            q = base_query
 
         houses = q.all()
         matches = []
@@ -325,3 +451,178 @@ class PreferencesService:
             'matches': matches,
             'preferences_applied': prefs.to_dict()
         }
+
+
+# AI SERVICE
+
+class AIService:
+    """Servicio para manejar predicciones de modelos de IA"""
+    
+    _full_pipeline = None
+    _top20_pipeline = None
+    _models_loaded = False
+    
+    @classmethod
+    def load_models(cls):
+        """Cargar los modelos de IA desde la carpeta resources"""
+        try:
+            import joblib
+            import os
+            import warnings
+            
+            # Suprimir warnings de compatibilidad
+            warnings.filterwarnings("ignore", category=UserWarning)
+            
+            # Ruta a la carpeta resources
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            resources_dir = os.path.join(current_dir, '../resources')
+            
+            # Cargar modelo complejo
+            full_pipeline_path = os.path.join(resources_dir, 'xgb_full_pipeline.pkl')
+            if os.path.exists(full_pipeline_path):
+                try:
+                    cls._full_pipeline = joblib.load(full_pipeline_path)
+                    print(f"Modelo complejo cargado desde: {full_pipeline_path}")
+                except Exception as e:
+                    print(f"Error cargando modelo complejo: {e}")
+                    cls._full_pipeline = None
+            else:
+                print(f"Archivo no encontrado: {full_pipeline_path}")
+            
+            # Cargar modelo sencillo
+            top20_pipeline_path = os.path.join(resources_dir, 'xgb_top20_pipeline.pkl')
+            if os.path.exists(top20_pipeline_path):
+                try:
+                    cls._top20_pipeline = joblib.load(top20_pipeline_path)
+                    print(f"Modelo sencillo cargado desde: {top20_pipeline_path}")
+                except Exception as e:
+                    print(f"Error cargando modelo sencillo: {e}")
+                    cls._top20_pipeline = None
+            else:
+                print(f"Archivo no encontrado: {top20_pipeline_path}")
+            
+            cls._models_loaded = True
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error al cargar modelos de IA: {e}")
+            cls._models_loaded = False
+            return False
+    
+    @classmethod
+    def get_model_status(cls):
+        """Obtener el estado de los modelos"""
+        return {
+            'models_loaded': cls._models_loaded,
+            'complex_model_available': cls._full_pipeline is not None,
+            'simple_model_available': cls._top20_pipeline is not None
+        }
+    
+    @classmethod
+    def predict_complex(cls, data):
+        """Predicción usando el modelo complejo (todas las características)"""
+        if not cls._models_loaded:
+            cls.load_models()
+        
+        if cls._full_pipeline is None:
+            raise Exception("Modelo complejo no disponible")
+        
+        try:
+            import pandas as pd
+            import numpy as np
+            
+            # Convertir datos a DataFrame
+            df = pd.DataFrame([data])
+            
+            # Realizar predicción
+            prediction = cls._full_pipeline.predict(df)[0]
+            
+            return {
+                'model_type': 'complex',
+                'predicted_price': float(prediction),
+                'status': 'success'
+            }
+            
+        except Exception as e:
+            raise Exception(f"Error en predicción compleja: {str(e)}")
+    
+    @classmethod
+    def predict_simple(cls, data):
+        """Predicción usando el modelo sencillo (top 20 características)"""
+        if not cls._models_loaded:
+            cls.load_models()
+        
+        if cls._top20_pipeline is None:
+            raise Exception("Modelo sencillo no disponible")
+        
+        try:
+            import pandas as pd
+            import numpy as np
+            
+            # Convertir datos a DataFrame
+            df = pd.DataFrame([data])
+            
+            # Realizar predicción
+            prediction = cls._top20_pipeline.predict(df)[0]
+            
+            return {
+                'model_type': 'simple',
+                'predicted_price': float(prediction),
+                'status': 'success'
+            }
+            
+        except Exception as e:
+            raise Exception(f"Error en predicción sencilla: {str(e)}")
+    
+    @classmethod
+    def predict_both(cls, data):
+        """Predicción usando ambos modelos para comparar"""
+        if not cls._models_loaded:
+            cls.load_models()
+        
+        results = {}
+        
+        # Predicción compleja
+        if cls._full_pipeline is not None:
+            try:
+                complex_result = cls.predict_complex(data)
+                results['complex_prediction'] = complex_result
+            except Exception as e:
+                results['complex_error'] = str(e)
+        
+        # Predicción sencilla
+        if cls._top20_pipeline is not None:
+            try:
+                simple_result = cls.predict_simple(data)
+                results['simple_prediction'] = simple_result
+            except Exception as e:
+                results['simple_error'] = str(e)
+        
+        if not results:
+            raise Exception("Ningún modelo de IA disponible")
+        
+        return results
+    
+    @classmethod
+    def predict_house_price(cls, house_data):
+        """Predicción de precio para una casa existente en la base de datos"""
+        try:
+            # Filtrar campos que no son relevantes para el modelo
+            excluded_fields = [
+                'house_id', 'vendor_id', 'title', 'description', 
+                'images', 'features', 'status', 'is_featured', 
+                'contact_phone', 'contact_email'
+            ]
+            
+            # Crear datos limpios para predicción
+            clean_data = {
+                k: v for k, v in house_data.items() 
+                if k not in excluded_fields and v is not None
+            }
+            
+            return cls.predict_both(clean_data)
+            
+        except Exception as e:
+            raise Exception(f"Error al predecir precio de casa: {str(e)}")
+
+        
