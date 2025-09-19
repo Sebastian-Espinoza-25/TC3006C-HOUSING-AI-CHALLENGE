@@ -319,3 +319,178 @@ class PreferencesService:
             'matches': matches,
             'preferences_applied': prefs.to_dict()
         }
+
+
+# AI SERVICE
+
+class AIService:
+    """Servicio para manejar predicciones de modelos de IA"""
+    
+    _full_pipeline = None
+    _top20_pipeline = None
+    _models_loaded = False
+    
+    @classmethod
+    def load_models(cls):
+        """Cargar los modelos de IA desde la carpeta resources"""
+        try:
+            import joblib
+            import os
+            import warnings
+            
+            # Suprimir warnings de compatibilidad
+            warnings.filterwarnings("ignore", category=UserWarning)
+            
+            # Ruta a la carpeta resources
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            resources_dir = os.path.join(current_dir, '../resources')
+            
+            # Cargar modelo complejo
+            full_pipeline_path = os.path.join(resources_dir, 'xgb_full_pipeline.pkl')
+            if os.path.exists(full_pipeline_path):
+                try:
+                    cls._full_pipeline = joblib.load(full_pipeline_path)
+                    print(f"Modelo complejo cargado desde: {full_pipeline_path}")
+                except Exception as e:
+                    print(f"Error cargando modelo complejo: {e}")
+                    cls._full_pipeline = None
+            else:
+                print(f"Archivo no encontrado: {full_pipeline_path}")
+            
+            # Cargar modelo sencillo
+            top20_pipeline_path = os.path.join(resources_dir, 'xgb_top20_pipeline.pkl')
+            if os.path.exists(top20_pipeline_path):
+                try:
+                    cls._top20_pipeline = joblib.load(top20_pipeline_path)
+                    print(f"Modelo sencillo cargado desde: {top20_pipeline_path}")
+                except Exception as e:
+                    print(f"Error cargando modelo sencillo: {e}")
+                    cls._top20_pipeline = None
+            else:
+                print(f"Archivo no encontrado: {top20_pipeline_path}")
+            
+            cls._models_loaded = True
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error al cargar modelos de IA: {e}")
+            cls._models_loaded = False
+            return False
+    
+    @classmethod
+    def get_model_status(cls):
+        """Obtener el estado de los modelos"""
+        return {
+            'models_loaded': cls._models_loaded,
+            'complex_model_available': cls._full_pipeline is not None,
+            'simple_model_available': cls._top20_pipeline is not None
+        }
+    
+    @classmethod
+    def predict_complex(cls, data):
+        """Predicción usando el modelo complejo (todas las características)"""
+        if not cls._models_loaded:
+            cls.load_models()
+        
+        if cls._full_pipeline is None:
+            raise Exception("Modelo complejo no disponible")
+        
+        try:
+            import pandas as pd
+            import numpy as np
+            
+            # Convertir datos a DataFrame
+            df = pd.DataFrame([data])
+            
+            # Realizar predicción
+            prediction = cls._full_pipeline.predict(df)[0]
+            
+            return {
+                'model_type': 'complex',
+                'predicted_price': float(prediction),
+                'status': 'success'
+            }
+            
+        except Exception as e:
+            raise Exception(f"Error en predicción compleja: {str(e)}")
+    
+    @classmethod
+    def predict_simple(cls, data):
+        """Predicción usando el modelo sencillo (top 20 características)"""
+        if not cls._models_loaded:
+            cls.load_models()
+        
+        if cls._top20_pipeline is None:
+            raise Exception("Modelo sencillo no disponible")
+        
+        try:
+            import pandas as pd
+            import numpy as np
+            
+            # Convertir datos a DataFrame
+            df = pd.DataFrame([data])
+            
+            # Realizar predicción
+            prediction = cls._top20_pipeline.predict(df)[0]
+            
+            return {
+                'model_type': 'simple',
+                'predicted_price': float(prediction),
+                'status': 'success'
+            }
+            
+        except Exception as e:
+            raise Exception(f"Error en predicción sencilla: {str(e)}")
+    
+    @classmethod
+    def predict_both(cls, data):
+        """Predicción usando ambos modelos para comparar"""
+        if not cls._models_loaded:
+            cls.load_models()
+        
+        results = {}
+        
+        # Predicción compleja
+        if cls._full_pipeline is not None:
+            try:
+                complex_result = cls.predict_complex(data)
+                results['complex_prediction'] = complex_result
+            except Exception as e:
+                results['complex_error'] = str(e)
+        
+        # Predicción sencilla
+        if cls._top20_pipeline is not None:
+            try:
+                simple_result = cls.predict_simple(data)
+                results['simple_prediction'] = simple_result
+            except Exception as e:
+                results['simple_error'] = str(e)
+        
+        if not results:
+            raise Exception("Ningún modelo de IA disponible")
+        
+        return results
+    
+    @classmethod
+    def predict_house_price(cls, house_data):
+        """Predicción de precio para una casa existente en la base de datos"""
+        try:
+            # Filtrar campos que no son relevantes para el modelo
+            excluded_fields = [
+                'house_id', 'vendor_id', 'title', 'description', 
+                'images', 'features', 'status', 'is_featured', 
+                'contact_phone', 'contact_email'
+            ]
+            
+            # Crear datos limpios para predicción
+            clean_data = {
+                k: v for k, v in house_data.items() 
+                if k not in excluded_fields and v is not None
+            }
+            
+            return cls.predict_both(clean_data)
+            
+        except Exception as e:
+            raise Exception(f"Error al predecir precio de casa: {str(e)}")
+
+        
