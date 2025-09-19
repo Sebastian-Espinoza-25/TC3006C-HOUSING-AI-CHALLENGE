@@ -173,6 +173,19 @@ def delete_house(house_id):
         return jsonify({"error": "Casa no encontrada"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@main.route("/api/houses/<int:vendor_id>", methods=["GET"])
+def get_houses_by_vendor(vendor_id):
+    """
+    Obtener todas las casas que pertenecen a un vendor_id.
+    """
+    try:
+        houses = HouseService.get_houses_by_vendor(vendor_id)
+        if houses is None:
+            return jsonify({"error": "Vendedor no encontrado"}), 404
+        return jsonify(houses)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # PREFERENCES/ MATCHING 
 
