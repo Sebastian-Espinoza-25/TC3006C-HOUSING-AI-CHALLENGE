@@ -208,14 +208,25 @@ class PreferencesService:
     @staticmethod
     def create_preference(client_id, preferences_data):
         try:
+            print(f"DEBUG: Creating preference for client_id: {client_id}")
+            print(f"DEBUG: Preferences data: {preferences_data}")
+            
             p = ClientPreferences.query.filter_by(client_id=client_id).first()
             if not p:
+                print("DEBUG: Creating new preference record")
                 p = ClientPreferences(client_id=client_id)
                 db.session.add(p)
+            else:
+                print("DEBUG: Updating existing preference record")
+            
             _assign_model_fields(p, preferences_data, exclude=('preference_id', 'client_id'))
             db.session.commit()
-            return p.to_dict()
-        except Exception:
+            
+            result = p.to_dict()
+            print(f"DEBUG: Final result: {result}")
+            return result
+        except Exception as e:
+            print(f"DEBUG: Error occurred: {str(e)}")
             db.session.rollback()
             raise
 
@@ -242,18 +253,31 @@ class PreferencesService:
         if not prefs:
             return {'client': client.to_dict(), 'matches': [], 'preferences_applied': None}
 
-        q = VendorHouse.query.filter(VendorHouse.status == 'available')
+        # Crear lista de condiciones OR
+        from sqlalchemy import or_, and_
+        conditions = []
+        
+        # Filtro base: solo casas disponibles
+        base_query = VendorHouse.query.filter(VendorHouse.status == 'available')
 
-        if prefs.min_sale_price is not None:
-            q = q.filter(VendorHouse.sale_price >= float(prefs.min_sale_price))
-        if prefs.max_sale_price is not None:
-            q = q.filter(VendorHouse.sale_price <= float(prefs.max_sale_price))
+        # Precio
+        if prefs.min_sale_price is not None and prefs.max_sale_price is not None:
+            conditions.append(
+                and_(VendorHouse.sale_price >= float(prefs.min_sale_price),
+                     VendorHouse.sale_price <= float(prefs.max_sale_price))
+            )
+        elif prefs.min_sale_price is not None:
+            conditions.append(VendorHouse.sale_price >= float(prefs.min_sale_price))
+        elif prefs.max_sale_price is not None:
+            conditions.append(VendorHouse.sale_price <= float(prefs.max_sale_price))
 
+        # Ubicación
         if prefs.preferred_neighborhood:
-            q = q.filter(VendorHouse.neighborhood == prefs.preferred_neighborhood)
+            conditions.append(VendorHouse.neighborhood == prefs.preferred_neighborhood)
         if prefs.preferred_ms_zoning:
-            q = q.filter(VendorHouse.ms_zoning == prefs.preferred_ms_zoning)
+            conditions.append(VendorHouse.ms_zoning == prefs.preferred_ms_zoning)
 
+        # Características exactas
         exact_string_cols = [
             ('preferred_bldg_type', 'bldg_type'),
             ('preferred_house_style', 'house_style'),
@@ -283,23 +307,125 @@ class PreferencesService:
         for pref_attr, house_col in exact_string_cols:
             val = getattr(prefs, pref_attr)
             if val:
-                q = q.filter(getattr(VendorHouse, house_col) == val)
+                conditions.append(getattr(VendorHouse, house_col) == val)
 
+        # Aire acondicionado
         if prefs.central_air_required:
-            q = q.filter(VendorHouse.central_air.in_(_truthy_strings()))
+            conditions.append(VendorHouse.central_air.in_(_truthy_strings()))
 
-        if prefs.min_bedroom_abv_gr is not None:
-            q = q.filter(VendorHouse.bedroom_abv_gr >= float(prefs.min_bedroom_abv_gr))
-        if prefs.max_bedroom_abv_gr is not None:
-            q = q.filter(VendorHouse.bedroom_abv_gr <= float(prefs.max_bedroom_abv_gr))
-        if prefs.min_full_bath is not None:
-            q = q.filter(VendorHouse.full_bath >= float(prefs.min_full_bath))
-        if prefs.max_full_bath is not None:
-            q = q.filter(VendorHouse.full_bath <= float(prefs.max_full_bath))
-        if prefs.min_gr_liv_area is not None:
-            q = q.filter(VendorHouse.gr_liv_area >= float(prefs.min_gr_liv_area))
-        if prefs.max_gr_liv_area is not None:
-            q = q.filter(VendorHouse.gr_liv_area <= float(prefs.max_gr_liv_area))
+        # Rangos numéricos
+        if prefs.min_bedroom_abv_gr is not None and prefs.max_bedroom_abv_gr is not None:
+            conditions.append(
+                and_(VendorHouse.bedroom_abv_gr >= float(prefs.min_bedroom_abv_gr),
+                     VendorHouse.bedroom_abv_gr <= float(prefs.max_bedroom_abv_gr))
+            )
+        elif prefs.min_bedroom_abv_gr is not None:
+            conditions.append(VendorHouse.bedroom_abv_gr >= float(prefs.min_bedroom_abv_gr))
+        elif prefs.max_bedroom_abv_gr is not None:
+            conditions.append(VendorHouse.bedroom_abv_gr <= float(prefs.max_bedroom_abv_gr))
+
+        if prefs.min_full_bath is not None and prefs.max_full_bath is not None:
+            conditions.append(
+                and_(VendorHouse.full_bath >= float(prefs.min_full_bath),
+                     VendorHouse.full_bath <= float(prefs.max_full_bath))
+            )
+        elif prefs.min_full_bath is not None:
+            conditions.append(VendorHouse.full_bath >= float(prefs.min_full_bath))
+        elif prefs.max_full_bath is not None:
+            conditions.append(VendorHouse.full_bath <= float(prefs.max_full_bath))
+
+        if prefs.min_gr_liv_area is not None and prefs.max_gr_liv_area is not None:
+            conditions.append(
+                and_(VendorHouse.gr_liv_area >= float(prefs.min_gr_liv_area),
+                     VendorHouse.gr_liv_area <= float(prefs.max_gr_liv_area))
+            )
+        elif prefs.min_gr_liv_area is not None:
+            conditions.append(VendorHouse.gr_liv_area >= float(prefs.min_gr_liv_area))
+        elif prefs.max_gr_liv_area is not None:
+            conditions.append(VendorHouse.gr_liv_area <= float(prefs.max_gr_liv_area))
+
+        # Nuevas columnas - Total Bath
+        if prefs.min_total_bath is not None and prefs.max_total_bath is not None:
+            conditions.append(
+                and_(VendorHouse.total_bath >= float(prefs.min_total_bath),
+                     VendorHouse.total_bath <= float(prefs.max_total_bath))
+            )
+        elif prefs.min_total_bath is not None:
+            conditions.append(VendorHouse.total_bath >= float(prefs.min_total_bath))
+        elif prefs.max_total_bath is not None:
+            conditions.append(VendorHouse.total_bath <= float(prefs.max_total_bath))
+
+        # Total SF
+        if prefs.min_total_sf is not None and prefs.max_total_sf is not None:
+            conditions.append(
+                and_(VendorHouse.total_sf >= float(prefs.min_total_sf),
+                     VendorHouse.total_sf <= float(prefs.max_total_sf))
+            )
+        elif prefs.min_total_sf is not None:
+            conditions.append(VendorHouse.total_sf >= float(prefs.min_total_sf))
+        elif prefs.max_total_sf is not None:
+            conditions.append(VendorHouse.total_sf <= float(prefs.max_total_sf))
+
+        # Remod Age
+        if prefs.min_remod_age is not None and prefs.max_remod_age is not None:
+            conditions.append(
+                and_(VendorHouse.remod_age >= float(prefs.min_remod_age),
+                     VendorHouse.remod_age <= float(prefs.max_remod_age))
+            )
+        elif prefs.min_remod_age is not None:
+            conditions.append(VendorHouse.remod_age >= float(prefs.min_remod_age))
+        elif prefs.max_remod_age is not None:
+            conditions.append(VendorHouse.remod_age <= float(prefs.max_remod_age))
+
+        # House Age
+        if prefs.min_house_age is not None and prefs.max_house_age is not None:
+            conditions.append(
+                and_(VendorHouse.house_age >= float(prefs.min_house_age),
+                     VendorHouse.house_age <= float(prefs.max_house_age))
+            )
+        elif prefs.min_house_age is not None:
+            conditions.append(VendorHouse.house_age >= float(prefs.min_house_age))
+        elif prefs.max_house_age is not None:
+            conditions.append(VendorHouse.house_age <= float(prefs.max_house_age))
+
+        # Garage Score
+        if prefs.min_garage_score is not None and prefs.max_garage_score is not None:
+            conditions.append(
+                and_(VendorHouse.garage_score >= float(prefs.min_garage_score),
+                     VendorHouse.garage_score <= float(prefs.max_garage_score))
+            )
+        elif prefs.min_garage_score is not None:
+            conditions.append(VendorHouse.garage_score >= float(prefs.min_garage_score))
+        elif prefs.max_garage_score is not None:
+            conditions.append(VendorHouse.garage_score <= float(prefs.max_garage_score))
+
+        # Total Porch SF
+        if prefs.min_total_porch_sf is not None and prefs.max_total_porch_sf is not None:
+            conditions.append(
+                and_(VendorHouse.total_porch_sf >= float(prefs.min_total_porch_sf),
+                     VendorHouse.total_porch_sf <= float(prefs.max_total_porch_sf))
+            )
+        elif prefs.min_total_porch_sf is not None:
+            conditions.append(VendorHouse.total_porch_sf >= float(prefs.min_total_porch_sf))
+        elif prefs.max_total_porch_sf is not None:
+            conditions.append(VendorHouse.total_porch_sf <= float(prefs.max_total_porch_sf))
+
+        # Rooms Plus Bath Eq
+        if prefs.min_rooms_plus_bath_eq is not None and prefs.max_rooms_plus_bath_eq is not None:
+            conditions.append(
+                and_(VendorHouse.rooms_plus_bath_eq >= float(prefs.min_rooms_plus_bath_eq),
+                     VendorHouse.rooms_plus_bath_eq <= float(prefs.max_rooms_plus_bath_eq))
+            )
+        elif prefs.min_rooms_plus_bath_eq is not None:
+            conditions.append(VendorHouse.rooms_plus_bath_eq >= float(prefs.min_rooms_plus_bath_eq))
+        elif prefs.max_rooms_plus_bath_eq is not None:
+            conditions.append(VendorHouse.rooms_plus_bath_eq <= float(prefs.max_rooms_plus_bath_eq))
+
+        # Aplicar condiciones OR si hay alguna
+        if conditions:
+            q = base_query.filter(or_(*conditions))
+        else:
+            q = base_query
 
         houses = q.all()
         matches = []

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from .services import ClientService, VendorService, HouseService, PreferencesService, AIService
+from pprint import pprint
 
 main = Blueprint("main", __name__)
 
@@ -150,7 +151,7 @@ def create_house(vendor_id):
     Requiere al menos: title, sale_price.
     """
     try:
-        data = request.get_json(silent=True) or {}
+        data = request.get_json() or {}
         if not data.get("title"):
             return jsonify({"error": "Campo requerido: title"}), 400
         if data.get("sale_price") is None:
@@ -179,6 +180,7 @@ def delete_house(house_id):
 def create_or_update_preferences(client_id):
     try:
         data = request.get_json(silent=True) or {}
+        pprint(data)
         prefs = PreferencesService.create_preference(client_id, data)
         if prefs is None:
             return jsonify({"error": "Cliente no encontrado"}), 404
@@ -210,7 +212,12 @@ def create_specific_preferences(client_id):
             'max_fireplaces', 'min_garage_cars', 'max_garage_cars', 'min_garage_area',
             'max_garage_area', 'min_wood_deck_sf', 'max_wood_deck_sf', 'min_open_porch_sf',
             'max_open_porch_sf', 'min_enclosed_porch', 'max_enclosed_porch', 'preferred_fence',
-            'min_sale_price', 'max_sale_price', 'preferred_sale_type'
+            'min_sale_price', 'max_sale_price', 'preferred_sale_type',
+            # Nuevas columnas agregadas
+            'min_total_bath', 'max_total_bath', 'min_total_sf', 'max_total_sf',
+            'min_remod_age', 'max_remod_age', 'min_house_age', 'max_house_age',
+            'min_garage_score', 'max_garage_score', 'min_total_porch_sf', 'max_total_porch_sf',
+            'min_rooms_plus_bath_eq', 'max_rooms_plus_bath_eq'
         ]
         
         # Copiar campos directos si existen en el JSON
@@ -237,7 +244,22 @@ def create_specific_preferences(client_id):
             'GarageCars': 'max_garage_cars', # También como max_garage_cars
             'GarageArea': 'min_garage_area', # Usar como min_garage_area
             'GarageArea': 'max_garage_area', # También como max_garage_area
-            'SaleCondition': 'preferred_sale_type'
+            'SaleCondition': 'preferred_sale_type',
+            # Nuevos mapeos para las columnas agregadas
+            'TotalBath': 'min_total_bath',  # Usar como min_total_bath
+            'TotalBath': 'max_total_bath',  # También como max_total_bath
+            'TotalSF': 'min_total_sf',     # Usar como min_total_sf
+            'TotalSF': 'max_total_sf',     # También como max_total_sf
+            'RemodAge': 'min_remod_age',   # Usar como min_remod_age
+            'RemodAge': 'max_remod_age',   # También como max_remod_age
+            'HouseAge': 'min_house_age',   # Usar como min_house_age
+            'HouseAge': 'max_house_age',   # También como max_house_age
+            'GarageScore': 'min_garage_score', # Usar como min_garage_score
+            'GarageScore': 'max_garage_score', # También como max_garage_score
+            'TotalPorchSF': 'min_total_porch_sf', # Usar como min_total_porch_sf
+            'TotalPorchSF': 'max_total_porch_sf', # También como max_total_porch_sf
+            'RoomsPlusBathEq': 'min_rooms_plus_bath_eq', # Usar como min_rooms_plus_bath_eq
+            'RoomsPlusBathEq': 'max_rooms_plus_bath_eq'  # También como max_rooms_plus_bath_eq
         }
         
         # Aplicar mapeo del JSON
@@ -275,6 +297,34 @@ def create_specific_preferences(client_id):
                     # Para GarageArea, usar el mismo valor para min y max
                     mapped_data['min_garage_area'] = float(data[json_field])
                     mapped_data['max_garage_area'] = float(data[json_field])
+                elif pref_field in ['min_total_bath', 'max_total_bath'] and json_field == 'TotalBath':
+                    # Para TotalBath, usar el mismo valor para min y max
+                    mapped_data['min_total_bath'] = float(data[json_field])
+                    mapped_data['max_total_bath'] = float(data[json_field])
+                elif pref_field in ['min_total_sf', 'max_total_sf'] and json_field == 'TotalSF':
+                    # Para TotalSF, usar el mismo valor para min y max
+                    mapped_data['min_total_sf'] = float(data[json_field])
+                    mapped_data['max_total_sf'] = float(data[json_field])
+                elif pref_field in ['min_remod_age', 'max_remod_age'] and json_field == 'RemodAge':
+                    # Para RemodAge, usar el mismo valor para min y max
+                    mapped_data['min_remod_age'] = float(data[json_field])
+                    mapped_data['max_remod_age'] = float(data[json_field])
+                elif pref_field in ['min_house_age', 'max_house_age'] and json_field == 'HouseAge':
+                    # Para HouseAge, usar el mismo valor para min y max
+                    mapped_data['min_house_age'] = float(data[json_field])
+                    mapped_data['max_house_age'] = float(data[json_field])
+                elif pref_field in ['min_garage_score', 'max_garage_score'] and json_field == 'GarageScore':
+                    # Para GarageScore, usar el mismo valor para min y max
+                    mapped_data['min_garage_score'] = float(data[json_field])
+                    mapped_data['max_garage_score'] = float(data[json_field])
+                elif pref_field in ['min_total_porch_sf', 'max_total_porch_sf'] and json_field == 'TotalPorchSF':
+                    # Para TotalPorchSF, usar el mismo valor para min y max
+                    mapped_data['min_total_porch_sf'] = float(data[json_field])
+                    mapped_data['max_total_porch_sf'] = float(data[json_field])
+                elif pref_field in ['min_rooms_plus_bath_eq', 'max_rooms_plus_bath_eq'] and json_field == 'RoomsPlusBathEq':
+                    # Para RoomsPlusBathEq, usar el mismo valor para min y max
+                    mapped_data['min_rooms_plus_bath_eq'] = float(data[json_field])
+                    mapped_data['max_rooms_plus_bath_eq'] = float(data[json_field])
                 else:
                     # Para otros campos, mapear directamente
                     mapped_data[pref_field] = data[json_field]

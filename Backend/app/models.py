@@ -92,6 +92,10 @@ class ClientPreferences(db.Model):
     max_year_built     = db.Column(db.Integer)
     min_year_remod_add = db.Column(db.Integer)
     max_year_remod_add = db.Column(db.Integer)
+    min_remod_age      = db.Column(db.Float)
+    max_remod_age      = db.Column(db.Float)
+    min_house_age      = db.Column(db.Float)
+    max_house_age      = db.Column(db.Float)
 
     # Sizes and areas
     min_lot_area      = db.Column(db.Float)
@@ -106,6 +110,8 @@ class ClientPreferences(db.Model):
     max_gr_liv_area   = db.Column(db.Float)
     min_total_bsmt_sf = db.Column(db.Float)
     max_total_bsmt_sf = db.Column(db.Float)
+    min_total_sf      = db.Column(db.Float)
+    max_total_sf      = db.Column(db.Float)
 
     # Rooms and bathrooms
     min_bedroom_abv_gr  = db.Column(db.Integer)
@@ -122,6 +128,8 @@ class ClientPreferences(db.Model):
     max_bsmt_full_bath  = db.Column(db.Integer)
     min_bsmt_half_bath  = db.Column(db.Integer)
     max_bsmt_half_bath  = db.Column(db.Integer)
+    min_total_bath      = db.Column(db.Float)
+    max_total_bath      = db.Column(db.Float)
 
     # Basement
     preferred_bsmt_qual      = db.Column(db.String(20))
@@ -164,6 +172,8 @@ class ClientPreferences(db.Model):
     preferred_garage_qual   = db.Column(db.String(20))
     preferred_garage_cond   = db.Column(db.String(20))
     preferred_paved_drive   = db.Column(db.String(20))
+    min_garage_score        = db.Column(db.Float)
+    max_garage_score        = db.Column(db.Float)
 
     # Exterior
     min_wood_deck_sf  = db.Column(db.Float)
@@ -176,6 +186,10 @@ class ClientPreferences(db.Model):
     max_3ssn_porch    = db.Column(db.Float)
     min_screen_porch  = db.Column(db.Float)
     max_screen_porch  = db.Column(db.Float)
+    min_total_porch_sf = db.Column(db.Float)
+    max_total_porch_sf = db.Column(db.Float)
+    min_rooms_plus_bath_eq = db.Column(db.Float)
+    max_rooms_plus_bath_eq = db.Column(db.Float)
 
     # Pool
     min_pool_area = db.Column(db.Float)
@@ -193,6 +207,23 @@ class ClientPreferences(db.Model):
     # Sale info
     preferred_sale_type      = db.Column(db.String(20))
     preferred_sale_condition = db.Column(db.String(20))
+
+    #New columns
+
+    min_remod_age = db.Column(db.Float)
+    max_remod_age = db.Column(db.Float)
+    min_house_age = db.Column(db.Float)
+    max_house_age = db.Column(db.Float)
+    min_total_porch_sf = db.Column(db.Float)
+    max_total_porch_sf = db.Column(db.Float)
+    min_rooms_plus_bath_eq = db.Column(db.Float)
+    max_rooms_plus_bath_eq = db.Column(db.Float)
+    min_total_bath = db.Column(db.Float)
+    max_total_bath = db.Column(db.Float)
+    min_total_sf = db.Column(db.Float)
+    max_total_sf = db.Column(db.Float)
+    min_garage_score = db.Column(db.Float)
+    max_garage_score = db.Column(db.Float)
 
     def to_dict(self):
         return _to_dict_all(self)
@@ -239,6 +270,8 @@ class VendorHouse(db.Model):
     # Years
     year_built     = db.Column(db.Float)
     year_remod_add = db.Column(db.Float)
+    remod_age      = db.Column(db.Float)
+    house_age      = db.Column(db.Float)
 
     # Roof
     roof_style = db.Column(db.String(20))
@@ -274,18 +307,21 @@ class VendorHouse(db.Model):
     first_flr_sf  = db.Column(db.Float)
     second_flr_sf = db.Column(db.Float)
     gr_liv_area   = db.Column(db.Float)
+    total_sf      = db.Column(db.Float)
 
     # Bathrooms
     bsmt_full_bath = db.Column(db.Float)
     bsmt_half_bath = db.Column(db.Float)
     full_bath      = db.Column(db.Float)
     half_bath      = db.Column(db.Float)
+    total_bath     = db.Column(db.Float)
 
     # Rooms
     bedroom_abv_gr  = db.Column(db.Float)
     kitchen_abv_gr  = db.Column(db.Float)
     kitchen_qual    = db.Column(db.String(20))
     tot_rms_abv_grd = db.Column(db.Float)
+    rooms_plus_bath_eq = db.Column(db.Float)
 
     # Functionality
     functional = db.Column(db.String(20))
@@ -303,6 +339,7 @@ class VendorHouse(db.Model):
     garage_qual   = db.Column(db.String(20))
     garage_cond   = db.Column(db.String(20))
     paved_drive   = db.Column(db.String(20))
+    garage_score  = db.Column(db.Float)
 
     # Exterior features
     wood_deck_sf    = db.Column(db.Float)
@@ -310,6 +347,7 @@ class VendorHouse(db.Model):
     enclosed_porch  = db.Column(db.Float)
     three_ssn_porch = db.Column(db.Float)
     screen_porch    = db.Column(db.Float)
+    total_porch_sf  = db.Column(db.Float)
 
     # Pool
     pool_area = db.Column(db.Float)
@@ -332,6 +370,15 @@ class VendorHouse(db.Model):
     # Contact
     contact_phone = db.Column(db.String(20))
     contact_email = db.Column(db.String(255))
+
+    #New columns
+    total_porch_sf = db.Column(db.Float)
+    rooms_plus_bath_eq = db.Column(db.Float)
+    total_bath = db.Column(db.Float)
+    total_sf = db.Column(db.Float)
+    remod_age = db.Column(db.Float)
+    house_age = db.Column(db.Float)
+    garage_score = db.Column(db.Float)
 
     def to_dict(self):
         return _to_dict_all(self)
