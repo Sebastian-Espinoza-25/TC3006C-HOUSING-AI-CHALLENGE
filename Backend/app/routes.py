@@ -26,6 +26,7 @@ def home():
             "delete_house": "DELETE /api/houses/<house_id>",
             # Preferences / Matching
             "create_or_update_preferences": "POST /api/clients/<client_id>/preferences",
+            "create_specific_preferences": "POST /api/clients/<client_id>/preferences/specific",
             "delete_preferences": "DELETE /api/clients/<client_id>/preferences",
             "recommendations": "GET /api/clients/<client_id>/recommendations",
             # AI Models
@@ -182,6 +183,117 @@ def create_or_update_preferences(client_id):
         if prefs is None:
             return jsonify({"error": "Cliente no encontrado"}), 404
         return jsonify(prefs), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@main.route("/api/clients/<int:client_id>/preferences/specific", methods=["POST"])
+def create_specific_preferences(client_id):
+    """
+    Crear preferencias específicas del cliente con campos limitados.
+    Acepta los campos específicos de la lista proporcionada y mapea campos del JSON de predicción.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        
+        # Mapear campos del JSON de predicción a campos de preferencias
+        mapped_data = {}
+        
+        # 1. Campos directos de la lista
+        direct_fields = [
+            'preferred_neighborhood', 'preferred_condition1', 'preferred_house_style',
+            'min_year_built', 'max_year_built', 'min_lot_area', 'max_lot_area',
+            'min_lot_frontage', 'max_lot_frontage', 'min_1st_flr_sf', 'max_1st_flr_sf',
+            'min_2nd_flr_sf', 'max_2nd_flr_sf', 'min_gr_liv_area', 'max_gr_liv_area',
+            'min_bedroom_abv_gr', 'max_bedroom_abv_gr', 'min_kitchen_abv_gr', 'max_kitchen_abv_gr',
+            'min_tot_rms_abv_grd', 'max_tot_rms_abv_grd', 'min_full_bath', 'max_full_bath',
+            'min_half_bath', 'max_half_bath', 'preferred_heating_qc', 'min_fireplaces',
+            'max_fireplaces', 'min_garage_cars', 'max_garage_cars', 'min_garage_area',
+            'max_garage_area', 'min_wood_deck_sf', 'max_wood_deck_sf', 'min_open_porch_sf',
+            'max_open_porch_sf', 'min_enclosed_porch', 'max_enclosed_porch', 'preferred_fence',
+            'min_sale_price', 'max_sale_price', 'preferred_sale_type'
+        ]
+        
+        # Copiar campos directos si existen en el JSON
+        for field in direct_fields:
+            if field in data:
+                mapped_data[field] = data[field]
+        
+        # 2. Mapear campos del JSON de predicción a campos de preferencias
+        json_mapping = {
+            'Neighborhood': 'preferred_neighborhood',
+            'YearBuilt': 'min_year_built',  # Usar como min_year_built
+            'YearBuilt': 'max_year_built',  # También como max_year_built
+            'LotArea': 'min_lot_area',     # Usar como min_lot_area
+            'LotArea': 'max_lot_area',     # También como max_lot_area
+            '1stFlrSF': 'min_1st_flr_sf',  # Usar como min_1st_flr_sf
+            '1stFlrSF': 'max_1st_flr_sf',  # También como max_1st_flr_sf
+            '2ndFlrSF': 'min_2nd_flr_sf',  # Usar como min_2nd_flr_sf
+            '2ndFlrSF': 'max_2nd_flr_sf',  # También como max_2nd_flr_sf
+            'GrLivArea': 'min_gr_liv_area', # Usar como min_gr_liv_area
+            'GrLivArea': 'max_gr_liv_area', # También como max_gr_liv_area
+            'Fireplaces': 'min_fireplaces', # Usar como min_fireplaces
+            'Fireplaces': 'max_fireplaces', # También como max_fireplaces
+            'GarageCars': 'min_garage_cars', # Usar como min_garage_cars
+            'GarageCars': 'max_garage_cars', # También como max_garage_cars
+            'GarageArea': 'min_garage_area', # Usar como min_garage_area
+            'GarageArea': 'max_garage_area', # También como max_garage_area
+            'SaleCondition': 'preferred_sale_type'
+        }
+        
+        # Aplicar mapeo del JSON
+        for json_field, pref_field in json_mapping.items():
+            if json_field in data and data[json_field] is not None:
+                if pref_field in ['min_year_built', 'max_year_built'] and json_field == 'YearBuilt':
+                    # Para YearBuilt, usar el mismo valor para min y max
+                    mapped_data['min_year_built'] = int(data[json_field])
+                    mapped_data['max_year_built'] = int(data[json_field])
+                elif pref_field in ['min_lot_area', 'max_lot_area'] and json_field == 'LotArea':
+                    # Para LotArea, usar el mismo valor para min y max
+                    mapped_data['min_lot_area'] = float(data[json_field])
+                    mapped_data['max_lot_area'] = float(data[json_field])
+                elif pref_field in ['min_1st_flr_sf', 'max_1st_flr_sf'] and json_field == '1stFlrSF':
+                    # Para 1stFlrSF, usar el mismo valor para min y max
+                    mapped_data['min_1st_flr_sf'] = float(data[json_field])
+                    mapped_data['max_1st_flr_sf'] = float(data[json_field])
+                elif pref_field in ['min_2nd_flr_sf', 'max_2nd_flr_sf'] and json_field == '2ndFlrSF':
+                    # Para 2ndFlrSF, usar el mismo valor para min y max
+                    mapped_data['min_2nd_flr_sf'] = float(data[json_field])
+                    mapped_data['max_2nd_flr_sf'] = float(data[json_field])
+                elif pref_field in ['min_gr_liv_area', 'max_gr_liv_area'] and json_field == 'GrLivArea':
+                    # Para GrLivArea, usar el mismo valor para min y max
+                    mapped_data['min_gr_liv_area'] = float(data[json_field])
+                    mapped_data['max_gr_liv_area'] = float(data[json_field])
+                elif pref_field in ['min_fireplaces', 'max_fireplaces'] and json_field == 'Fireplaces':
+                    # Para Fireplaces, usar el mismo valor para min y max
+                    mapped_data['min_fireplaces'] = int(data[json_field])
+                    mapped_data['max_fireplaces'] = int(data[json_field])
+                elif pref_field in ['min_garage_cars', 'max_garage_cars'] and json_field == 'GarageCars':
+                    # Para GarageCars, usar el mismo valor para min y max
+                    mapped_data['min_garage_cars'] = int(data[json_field])
+                    mapped_data['max_garage_cars'] = int(data[json_field])
+                elif pref_field in ['min_garage_area', 'max_garage_area'] and json_field == 'GarageArea':
+                    # Para GarageArea, usar el mismo valor para min y max
+                    mapped_data['min_garage_area'] = float(data[json_field])
+                    mapped_data['max_garage_area'] = float(data[json_field])
+                else:
+                    # Para otros campos, mapear directamente
+                    mapped_data[pref_field] = data[json_field]
+        
+        # Validar que al menos se proporcione algún campo
+        if not mapped_data:
+            return jsonify({"error": "No se proporcionaron campos válidos para las preferencias"}), 400
+        
+        # Crear o actualizar preferencias
+        prefs = PreferencesService.create_preference(client_id, mapped_data)
+        if prefs is None:
+            return jsonify({"error": "Cliente no encontrado"}), 404
+        
+        return jsonify({
+            "message": "Preferencias específicas creadas/actualizadas correctamente",
+            "preferences": prefs,
+            "mapped_fields": list(mapped_data.keys())
+        }), 201
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

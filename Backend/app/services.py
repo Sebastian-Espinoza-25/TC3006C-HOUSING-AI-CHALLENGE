@@ -238,7 +238,7 @@ class PreferencesService:
         if not client:
             return {'client': None, 'matches': [], 'preferences_applied': None}
 
-        prefs = ClientPreferences.query.filter_by(client_id=client_id).first()
+        prefs = ClientPreferences.query.filter_by(client_id=client_id).order_by(ClientPreferences.preference_id.desc()).first()
         if not prefs:
             return {'client': client.to_dict(), 'matches': [], 'preferences_applied': None}
 
