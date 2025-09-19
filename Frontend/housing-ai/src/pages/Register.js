@@ -17,6 +17,9 @@ export default function Register() {
     confirmPassword: ""
   });
 
+  // NUEVO: rol seleccionado (buyer = client por defecto)
+  const [role, setRole] = useState("client"); // "client" | "vendor"
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,15 +40,21 @@ export default function Register() {
 
     setLoading(true);
     try {
-      // Por ahora registramos como CLIENTE (endpoint /api/clients del backend)
-      // Si quieres registrar vendedores, cambia a /api/vendors
-      const res = await fetch(`${API}/api/clients`, {
+      // Endpoint según el rol elegido
+      // Buyer -> client, Vendor -> vendor
+      const endpoint =
+        role === "vendor" ? "/api/vendors" : "/api/clients";
+
+      const res = await fetch(`${API}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: formData.name.trim(),
           email: formData.email.trim(),
-          password: formData.password
+          password: formData.password,
+          // En muchos backends el endpoint ya fija el rol,
+          // pero mandar el rol no estorba si lo ignoran:
+          role
         })
       });
 
@@ -75,6 +84,28 @@ export default function Register() {
       {/* Formulario centrado */}
       <div className="form-container">
         <h2>Crear cuenta</h2>
+
+        {/* NUEVO: selector de rol tipo switch/segmentado */}
+        <div className="role-toggle" role="tablist" aria-label="Tipo de usuario">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={role === "client"}
+            className={role === "client" ? "active" : ""}
+            onClick={() => setRole("client")}
+          >
+            Buyer
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={role === "vendor"}
+            className={role === "vendor" ? "active" : ""}
+            onClick={() => setRole("vendor")}
+          >
+            Vendor
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit}>
           <input
@@ -133,11 +164,12 @@ export default function Register() {
             </button>
           </div>
 
+          {/* feedback */}
           {err && <p style={{ color: "#b91c1c", marginTop: 6 }}>{err}</p>}
           {ok &&  <p style={{ color: "#065f46", marginTop: 6 }}>{ok}</p>}
 
           <button type="submit" disabled={loading}>
-            {loading ? "Creando..." : "Registrarse"}
+            {loading ? "Creando..." : `Registrarse como ${role === "vendor" ? "Vendor" : "Buyer"}`}
           </button>
         </form>
 
