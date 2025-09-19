@@ -138,3 +138,12 @@
 .rec-detail-value{
   font-size: 14px; color: var(--text, #222426);
 }
+.rec-img {
+  width: 120px;          /* ajusta a tu layout */
+  height: 90px;          /* ajusta a tu layout */
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background-color: #eee;     /* fallback si no hay fotos */
+  background-size: cover;
+  background-position: center;
+}
