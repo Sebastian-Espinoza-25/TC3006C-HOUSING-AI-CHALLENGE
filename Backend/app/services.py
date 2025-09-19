@@ -1,5 +1,6 @@
 from . import db
 from .models import Client, Vendor, ClientPreferences, VendorHouse
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Helpers
 def _assign_model_fields(instance, data, *, exclude=()):
@@ -36,7 +37,7 @@ class ClientService:
             c = Client(
                 username=client_data['username'],
                 email=client_data['email'],
-                password=client_data['password']  # TODO: hash in prod
+                password=generate_password_hash(client_data['password'])  # hash
             )
             db.session.add(c)
             db.session.commit()
@@ -51,6 +52,8 @@ class ClientService:
             c = Client.query.get(client_id)
             if not c:
                 return None
+            if "password" in client_data:
+                client_data["password"] = generate_password_hash(client_data["password"])
             _assign_model_fields(c, client_data, exclude=('client_id',))
             db.session.commit()
             return c.to_dict()
@@ -71,8 +74,28 @@ class ClientService:
             db.session.rollback()
             raise
 
-# Vendor Service
+    @staticmethod
+    def authenticate(identifier: str, password: str):
+        """
+        Autentica un cliente por email o username.
+        Devuelve dict si coincide la contraseña, si no None.
+        """
+        client = Client.query.filter(
+            (Client.email == identifier) | (Client.username == identifier)
+        ).first()
+        if not client:
+            return None
 
+        if check_password_hash(client.password, password):
+            return client.to_dict()
+
+        # Fallback por si alguna contraseña se guardó en texto plano (temporal)
+        if client.password == password:
+            return client.to_dict()
+
+        return None
+
+# Vendor Service
 class VendorService:
     @staticmethod
     def get_all_vendors():
@@ -90,7 +113,7 @@ class VendorService:
             v = Vendor(
                 username=vendor_data['username'],
                 email=vendor_data['email'],
-                password=vendor_data['password']  # TODO: hash in prod
+                password=generate_password_hash(vendor_data['password'])  # hash
             )
             db.session.add(v)
             db.session.commit()
@@ -105,6 +128,8 @@ class VendorService:
             v = Vendor.query.get(vendor_id)
             if not v:
                 return None
+            if "password" in vendor_data:
+                vendor_data["password"] = generate_password_hash(vendor_data["password"])
             _assign_model_fields(v, vendor_data, exclude=('vendor_id',))
             db.session.commit()
             return v.to_dict()
@@ -125,25 +150,39 @@ class VendorService:
             db.session.rollback()
             raise
 
+    @staticmethod
+    def authenticate(identifier: str, password: str):
+        """
+        Autentica un vendedor por email o username.
+        Devuelve dict si coincide la contraseña, si no None.
+        """
+        vendor = Vendor.query.filter(
+            (Vendor.email == identifier) | (Vendor.username == identifier)
+        ).first()
+        if not vendor:
+            return None
+
+        if check_password_hash(vendor.password, password):
+            return vendor.to_dict()
+
+        if vendor.password == password:  # fallback temporal
+            return vendor.to_dict()
+
+        return None
+
 # House Service 
 class HouseService:
     @staticmethod
-    #THIS SHOULD BE ONLY USED AFTER THE PRIZE IS PREDICTED BY THE MODEL
     def create_house(vendor_id, house_data):
         """
         Create a house for a vendor.
         Requires vendor_id and at least: title, sale_price.
-        You can pass all other house characteristics in house_data (column names from vendor_houses).
         """
         try:
             h = VendorHouse(vendor_id=vendor_id)
-            # required
             h.title = house_data['title']
             h.sale_price = float(house_data['sale_price'])
-
-            # optional — assign everything else that exists on the model
             _assign_model_fields(h, house_data, exclude=('house_id', 'vendor_id', 'title', 'sale_price'))
-
             db.session.add(h)
             db.session.commit()
             return h.to_dict()
@@ -168,16 +207,11 @@ class HouseService:
 class PreferencesService:
     @staticmethod
     def create_preference(client_id, preferences_data):
-        """
-        Create preferences for a client (one row).
-        If a row already exists for this client, update it instead (simple upsert behavior).
-        """
         try:
             p = ClientPreferences.query.filter_by(client_id=client_id).first()
             if not p:
                 p = ClientPreferences(client_id=client_id)
                 db.session.add(p)
-
             _assign_model_fields(p, preferences_data, exclude=('preference_id', 'client_id'))
             db.session.commit()
             return p.to_dict()
@@ -200,25 +234,6 @@ class PreferencesService:
 
     @staticmethod
     def find_matching_houses(client_id):
-        """
-        Match houses against a client's preferences.
-        Returns:
-        {
-          'client': {...},
-          'matches': [
-              {
-                'house': {...},
-                'vendor': {
-                    ...vendor fields...,
-                    'contact_phone': <from house>,
-                    'contact_email': <from house>
-                }
-              },
-              ...
-          ],
-          'preferences_applied': {...} | None
-        }
-        """
         client = Client.query.get(client_id)
         if not client:
             return {'client': None, 'matches': [], 'preferences_applied': None}
@@ -229,20 +244,16 @@ class PreferencesService:
 
         q = VendorHouse.query.filter(VendorHouse.status == 'available')
 
-        # --- Basic filters (use only what is present) ---
-        # Price
         if prefs.min_sale_price is not None:
             q = q.filter(VendorHouse.sale_price >= float(prefs.min_sale_price))
         if prefs.max_sale_price is not None:
             q = q.filter(VendorHouse.sale_price <= float(prefs.max_sale_price))
 
-        # Neighborhood / zoning
         if prefs.preferred_neighborhood:
             q = q.filter(VendorHouse.neighborhood == prefs.preferred_neighborhood)
         if prefs.preferred_ms_zoning:
             q = q.filter(VendorHouse.ms_zoning == prefs.preferred_ms_zoning)
 
-        # Selected exact-string preferences
         exact_string_cols = [
             ('preferred_bldg_type', 'bldg_type'),
             ('preferred_house_style', 'house_style'),
@@ -274,11 +285,9 @@ class PreferencesService:
             if val:
                 q = q.filter(getattr(VendorHouse, house_col) == val)
 
-        # Central air (bool pref vs VARCHAR column)
         if prefs.central_air_required:
             q = q.filter(VendorHouse.central_air.in_(_truthy_strings()))
 
-        # A few common numeric ranges 
         if prefs.min_bedroom_abv_gr is not None:
             q = q.filter(VendorHouse.bedroom_abv_gr >= float(prefs.min_bedroom_abv_gr))
         if prefs.max_bedroom_abv_gr is not None:
@@ -293,8 +302,6 @@ class PreferencesService:
             q = q.filter(VendorHouse.gr_liv_area <= float(prefs.max_gr_liv_area))
 
         houses = q.all()
-
-        # Join vendor info for each house and return contact info
         matches = []
         for h in houses:
             v = Vendor.query.get(h.vendor_id)
@@ -302,7 +309,6 @@ class PreferencesService:
             if vendor_info is None:
                 continue
 
-            # Add contact info from the house listing to vendor payload
             vendor_info_with_contact = {
                 **vendor_info,
                 'contact_phone': h.contact_phone,
