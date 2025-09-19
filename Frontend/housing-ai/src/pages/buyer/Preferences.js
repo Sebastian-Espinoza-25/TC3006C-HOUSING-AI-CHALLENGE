@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import datasetSummary from "../../Assets/dataset_summary.json";
 import "../../styles/buyer.css";
 
-/* ---------- Helpers UI ---------- */
+/* ================== Config API ================== */
+const API_BASE = import.meta?.env?.VITE_API_BASE || "http://localhost:5001";
+
+/* =============== Helpers de UI ================== */
 
 function Options({ values = [], placeholder }) {
   return (
@@ -18,7 +21,8 @@ function Options({ values = [], placeholder }) {
 function NumberRange({ label, minKey, maxKey, state, setState, step = "any" }) {
   const minVal = state[minKey] ?? "";
   const maxVal = state[maxKey] ?? "";
-  const hasError = minVal !== "" && maxVal !== "" && parseFloat(minVal) > parseFloat(maxVal);
+  const hasError =
+    minVal !== "" && maxVal !== "" && parseFloat(minVal) > parseFloat(maxVal);
 
   const onChange = (key) => (e) => {
     const value = e.target.value;
@@ -58,7 +62,11 @@ function YesNo({ label, value, onChange }) {
   return (
     <div className="field">
       <label>{label}</label>
-      <select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value === "true")}>
+      <select
+        className="input"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value === "true")}
+      >
         <option value="">(cualquiera)</option>
         <option value="true">Sí</option>
         <option value="false">No</option>
@@ -67,10 +75,12 @@ function YesNo({ label, value, onChange }) {
   );
 }
 
-/* ---------- Component ---------- */
+/* ================== Componente ================== */
 
 export default function Preferences() {
-  /* Categóricos del dataset (memo estables para evitar warnings) */
+  const clientId = 1; // TODO: reemplaza por el id real del cliente autenticado
+
+  /* Categóricos del dataset (memo) */
   const U = useMemo(() => datasetSummary?.categorical_uniques ?? {}, []);
   const C = useMemo(
     () => ({
@@ -112,7 +122,7 @@ export default function Preferences() {
     [U]
   );
 
-  /* State del formulario (nombres idénticos a tu tabla, más los nuevos de TotalSF) */
+  /* ======= State del formulario (claves = columnas DB) ======= */
   const [form, setForm] = useState({
     // Ubicación y zona
     preferred_neighborhood: "",
@@ -138,11 +148,21 @@ export default function Preferences() {
     min_exter_qual: "",
     min_exter_cond: "",
 
-    // Años
+    // Años base
     min_year_built: "",
     max_year_built: "",
     min_year_remod_add: "",
     max_year_remod_add: "",
+
+    // Para calcular edades (no existe en DB, es solo input)
+    min_yr_sold: "",
+    max_yr_sold: "",
+
+    // Fallback manual de edades si no se puede calcular
+    min_house_age: "",
+    max_house_age: "",
+    min_remod_age: "",
+    max_remod_age: "",
 
     // Tamaños / áreas
     min_lot_area: "",
@@ -224,40 +244,39 @@ export default function Preferences() {
     min_screen_porch: "",
     max_screen_porch: "",
 
-    // Piscina
+    // Piscina / misceláneos
     min_pool_area: "",
     max_pool_area: "",
     preferred_pool_qc: "",
-
-    // Cercas y misceláneos
     preferred_fence: "",
     preferred_misc_feature: "",
 
-    // Precio
+    // Precio / venta
     min_sale_price: "",
     max_sale_price: "",
-
-    // Tipo/condición venta
     preferred_sale_type: "",
     preferred_sale_condition: "",
 
-    /* --------- Derivados: TotalSF --------- */
+    /* Componentes para TotalSF (no duplicamos inputs) */
     totalSF_min_1st: "",
-    totalSF_min_2nd: "",
-    totalSF_min_bsmt: "",
     totalSF_max_1st: "",
+    totalSF_min_2nd: "",
     totalSF_max_2nd: "",
+    totalSF_min_bsmt: "",
     totalSF_max_bsmt: "",
   });
 
   const [globalError, setGlobalError] = useState("");
 
-  /* Pares numéricos a validar min<=max */
+  /* Pares para validar min<=max */
   const pairs = [
     ["min_overall_qual", "max_overall_qual"],
     ["min_overall_cond", "max_overall_cond"],
     ["min_year_built", "max_year_built"],
     ["min_year_remod_add", "max_year_remod_add"],
+    ["min_yr_sold", "max_yr_sold"],
+    ["min_house_age", "max_house_age"],
+    ["min_remod_age", "max_remod_age"],
     ["min_lot_area", "max_lot_area"],
     ["min_lot_frontage", "max_lot_frontage"],
     ["min_gr_liv_area", "max_gr_liv_area"],
@@ -283,7 +302,7 @@ export default function Preferences() {
     ["min_screen_porch", "max_screen_porch"],
     ["min_pool_area", "max_pool_area"],
     ["min_sale_price", "max_sale_price"],
-    /* TotalSF pares internos */
+    // TotalSF internos
     ["totalSF_min_1st", "totalSF_max_1st"],
     ["totalSF_min_2nd", "totalSF_max_2nd"],
     ["totalSF_min_bsmt", "totalSF_max_bsmt"],
@@ -292,13 +311,13 @@ export default function Preferences() {
   const onSel = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
   const onBool = (key) => (v) => setForm((p) => ({ ...p, [key]: v }));
 
+  /* ======= Helpers numéricos / fórmulas ======= */
   const sanitize = (value, isInt = false) => {
     if (value === "" || value == null) return null;
     const num = isInt ? parseInt(value, 10) : parseFloat(value);
     return Number.isFinite(num) ? num : null;
   };
 
-  /* TotalSF derivado */
   const sum3 = (a, b, c) => {
     const na = a === "" ? null : parseFloat(a);
     const nb = b === "" ? null : parseFloat(b);
@@ -307,9 +326,106 @@ export default function Preferences() {
     return na + nb + nc;
   };
 
-  const handleSubmit = (e) => {
+  const bothIfSingle = (minVal, maxVal) => {
+    if (minVal != null && maxVal == null) return [minVal, minVal];
+    if (maxVal != null && minVal == null) return [maxVal, maxVal];
+    return [minVal ?? null, maxVal ?? null];
+  };
+
+  const product2 = (minA, maxA, minB, maxB) => {
+    const minProd = minA != null && minB != null ? minA * minB : null;
+    const maxProd = maxA != null && maxB != null ? maxA * maxB : null;
+    return bothIfSingle(minProd, maxProd);
+  };
+
+  const totalBathFromRanges = () => {
+    const minFull = sanitize(form.min_full_bath, true);
+    const minHalf = sanitize(form.min_half_bath, true);
+    const minBFull = sanitize(form.min_bsmt_full_bath, true);
+    const minBHalf = sanitize(form.min_bsmt_half_bath, true);
+
+    const maxFull = sanitize(form.max_full_bath, true);
+    const maxHalf = sanitize(form.max_half_bath, true);
+    const maxBFull = sanitize(form.max_bsmt_full_bath, true);
+    const maxBHalf = sanitize(form.max_bsmt_half_bath, true);
+
+    const minSum =
+      minFull != null && minHalf != null && minBFull != null && minBHalf != null
+        ? minFull + 0.5 * minHalf + minBFull + 0.5 * minBHalf
+        : null;
+
+    const maxSum =
+      maxFull != null && maxHalf != null && maxBFull != null && maxBHalf != null
+        ? maxFull + 0.5 * maxHalf + maxBFull + 0.5 * maxBHalf
+        : null;
+
+    return bothIfSingle(minSum, maxSum);
+  };
+
+  const totalPorchFromRanges = () => {
+    const mins = [
+      sanitize(form.min_wood_deck_sf),
+      sanitize(form.min_open_porch_sf),
+      sanitize(form.min_enclosed_porch),
+      sanitize(form.min_3ssn_porch),
+      sanitize(form.min_screen_porch),
+    ];
+    const maxs = [
+      sanitize(form.max_wood_deck_sf),
+      sanitize(form.max_open_porch_sf),
+      sanitize(form.max_enclosed_porch),
+      sanitize(form.max_3ssn_porch),
+      sanitize(form.max_screen_porch),
+    ];
+    const minValid = mins.every((v) => v != null);
+    const maxValid = maxs.every((v) => v != null);
+
+    const minSum = minValid ? mins.reduce((a, b) => a + b, 0) : null;
+    const maxSum = maxValid ? maxs.reduce((a, b) => a + b, 0) : null;
+
+    return bothIfSingle(minSum, maxSum);
+  };
+
+  const roomsPlusBathFromRanges = (minTotalBath, maxTotalBath) => {
+    const minRooms = sanitize(form.min_tot_rms_abv_grd, true);
+    const maxRooms = sanitize(form.max_tot_rms_abv_grd, true);
+
+    const minEq =
+      minRooms != null && minTotalBath != null ? minRooms + minTotalBath : null;
+    const maxEq =
+      maxRooms != null && maxTotalBath != null ? maxRooms + maxTotalBath : null;
+
+    return bothIfSingle(minEq, maxEq);
+  };
+
+  const agesFromYrSold = () => {
+    const minYrSold = sanitize(form.min_yr_sold, true);
+    const maxYrSold = sanitize(form.max_yr_sold, true);
+
+    const minYB = sanitize(form.min_year_built, true);
+    const maxYB = sanitize(form.max_year_built, true);
+
+    const minYR = sanitize(form.min_year_remod_add, true);
+    const maxYR = sanitize(form.max_year_remod_add, true);
+
+    // HouseAge (rango conservador)
+    const hMin = minYrSold != null && maxYB != null ? minYrSold - maxYB : null;
+    const hMax = maxYrSold != null && minYB != null ? maxYrSold - minYB : null;
+    const [min_house_age, max_house_age] = bothIfSingle(hMin, hMax);
+
+    // RemodAge (rango conservador)
+    const rMin = minYrSold != null && maxYR != null ? minYrSold - maxYR : null;
+    const rMax = maxYrSold != null && minYR != null ? maxYrSold - minYR : null;
+    const [min_remod_age, max_remod_age] = bothIfSingle(rMin, rMax);
+
+    return { min_house_age, max_house_age, min_remod_age, max_remod_age };
+  };
+
+  /* =================== Submit =================== */
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validación global min<=max
     for (const [minK, maxK] of pairs) {
       const minV = form[minK];
       const maxV = form[maxK];
@@ -320,11 +436,51 @@ export default function Preferences() {
     }
     setGlobalError("");
 
-    const min_total_sf_calc = sum3(form.totalSF_min_1st, form.totalSF_min_2nd, form.totalSF_min_bsmt);
-    const max_total_sf_calc = sum3(form.totalSF_max_1st, form.totalSF_max_2nd, form.totalSF_max_bsmt);
+    // Derivados
+    const [min_total_sf, max_total_sf] = bothIfSingle(
+      sum3(form.totalSF_min_1st, form.totalSF_min_2nd, form.totalSF_min_bsmt),
+      sum3(form.totalSF_max_1st, form.totalSF_max_2nd, form.totalSF_max_bsmt)
+    );
+    const [min_total_bath, max_total_bath] = totalBathFromRanges();
+    const [min_total_porch_sf, max_total_porch_sf] = totalPorchFromRanges();
+    const [min_rooms_plus_bath_eq, max_rooms_plus_bath_eq] =
+      roomsPlusBathFromRanges(min_total_bath, max_total_bath);
 
+    const minCars = sanitize(form.min_garage_cars, true);
+    const maxCars = sanitize(form.max_garage_cars, true);
+    const minArea = sanitize(form.min_garage_area);
+    const maxArea = sanitize(form.max_garage_area);
+    const [min_garage_score, max_garage_score] = product2(
+      minCars,
+      maxCars,
+      minArea,
+      maxArea
+    );
+
+    let { min_house_age, max_house_age, min_remod_age, max_remod_age } =
+      agesFromYrSold();
+    if (min_house_age == null && max_house_age == null) {
+      [min_house_age, max_house_age] = bothIfSingle(
+        sanitize(form.min_house_age),
+        sanitize(form.max_house_age)
+      );
+    }
+    if (min_remod_age == null && max_remod_age == null) {
+      [min_remod_age, max_remod_age] = bothIfSingle(
+        sanitize(form.min_remod_age),
+        sanitize(form.max_remod_age)
+      );
+    }
+
+    // 1st/2nd (no derivados; tu schema los tiene)
+    const min_1st_flr_sf = sanitize(form.totalSF_min_1st);
+    const max_1st_flr_sf = sanitize(form.totalSF_max_1st);
+    const min_2nd_flr_sf = sanitize(form.totalSF_min_2nd);
+    const max_2nd_flr_sf = sanitize(form.totalSF_max_2nd);
+
+    // Payload EXACTO a la tabla client_preferences (sin YrSold)
     const payload = {
-      // Ubicación y zona
+      // Ubicación & zona
       preferred_neighborhood: form.preferred_neighborhood || null,
       preferred_ms_zoning: form.preferred_ms_zoning || null,
       preferred_lot_shape: form.preferred_lot_shape || null,
@@ -340,7 +496,7 @@ export default function Preferences() {
       preferred_exterior2nd: form.preferred_exterior2nd || null,
       preferred_foundation: form.preferred_foundation || null,
 
-      // Calidad y condición
+      // Calidad / condición
       min_overall_qual: sanitize(form.min_overall_qual),
       max_overall_qual: sanitize(form.max_overall_qual),
       min_overall_cond: sanitize(form.min_overall_cond),
@@ -348,7 +504,7 @@ export default function Preferences() {
       min_exter_qual: form.min_exter_qual || null,
       min_exter_cond: form.min_exter_cond || null,
 
-      // Años
+      // Años base
       min_year_built: sanitize(form.min_year_built, true),
       max_year_built: sanitize(form.max_year_built, true),
       min_year_remod_add: sanitize(form.min_year_remod_add, true),
@@ -363,6 +519,12 @@ export default function Preferences() {
       max_gr_liv_area: sanitize(form.max_gr_liv_area),
       min_total_bsmt_sf: sanitize(form.min_total_bsmt_sf),
       max_total_bsmt_sf: sanitize(form.max_total_bsmt_sf),
+
+      // 1st/2nd (no derivados)
+      min_1st_flr_sf,
+      max_1st_flr_sf,
+      min_2nd_flr_sf,
+      max_2nd_flr_sf,
 
       // Habitaciones y baños
       min_bedroom_abv_gr: sanitize(form.min_bedroom_abv_gr, true),
@@ -393,16 +555,14 @@ export default function Preferences() {
       min_bsmt_unf_sf: sanitize(form.min_bsmt_unf_sf),
       max_bsmt_unf_sf: sanitize(form.max_bsmt_unf_sf),
 
-      // Calefacción y A/A
+      // HVAC / eléctrico
       preferred_heating_qc: form.preferred_heating_qc || null,
       central_air_required:
         form.central_air_required === "" ? null : Boolean(form.central_air_required),
       preferred_electrical: form.preferred_electrical || null,
 
-      // Cocina
+      // Cocina / funcionalidad
       min_kitchen_qual: form.min_kitchen_qual || null,
-
-      // Funcionalidad
       preferred_functional: form.preferred_functional || null,
 
       // Chimeneas
@@ -415,10 +575,10 @@ export default function Preferences() {
       min_garage_yr_blt: sanitize(form.min_garage_yr_blt, true),
       max_garage_yr_blt: sanitize(form.max_garage_yr_blt, true),
       preferred_garage_finish: form.preferred_garage_finish || null,
-      min_garage_cars: sanitize(form.min_garage_cars, true),
-      max_garage_cars: sanitize(form.max_garage_cars, true),
-      min_garage_area: sanitize(form.min_garage_area),
-      max_garage_area: sanitize(form.max_garage_area),
+      min_garage_cars: minCars,
+      max_garage_cars: maxCars,
+      min_garage_area: minArea,
+      max_garage_area: maxArea,
       preferred_garage_qual: form.preferred_garage_qual || null,
       preferred_garage_cond: form.preferred_garage_cond || null,
       preferred_paved_drive: form.preferred_paved_drive || null,
@@ -435,30 +595,55 @@ export default function Preferences() {
       min_screen_porch: sanitize(form.min_screen_porch),
       max_screen_porch: sanitize(form.max_screen_porch),
 
-      // Piscina
+      // Piscina / misceláneos
       min_pool_area: sanitize(form.min_pool_area),
       max_pool_area: sanitize(form.max_pool_area),
       preferred_pool_qc: form.preferred_pool_qc || null,
-
-      // Cercas y misceláneos
       preferred_fence: form.preferred_fence || null,
       preferred_misc_feature: form.preferred_misc_feature || null,
 
-      // Precio
+      // Precio / venta
       min_sale_price: sanitize(form.min_sale_price),
       max_sale_price: sanitize(form.max_sale_price),
-
-      // Tipo/condición de venta
       preferred_sale_type: form.preferred_sale_type || null,
       preferred_sale_condition: form.preferred_sale_condition || null,
 
-      /* Derivados: TotalSF (FLOAT) */
-      min_total_sf: min_total_sf_calc,
-      max_total_sf: max_total_sf_calc,
+      /* -------- Derivados finales enviados al backend -------- */
+      min_total_sf,
+      max_total_sf,
+      min_total_bath,
+      max_total_bath,
+      min_total_porch_sf,
+      max_total_porch_sf,
+      min_rooms_plus_bath_eq,
+      max_rooms_plus_bath_eq,
+      min_garage_score,
+      max_garage_score,
+      min_house_age,
+      max_house_age,
+      min_remod_age,
+      max_remod_age,
     };
 
-    console.log("Client preferences payload:", payload);
-    alert("¡Preferencias guardadas localmente! (revisa la consola)");
+    try {
+      const resp = await fetch(
+        `${API_BASE}/api/clients/${clientId}/preferences`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(data?.error || `HTTP ${resp.status}`);
+
+      console.log("Preferencias guardadas:", data);
+      alert("✅ Preferencias enviadas y guardadas en el servidor.");
+    } catch (err) {
+      console.error("Error guardando preferencias:", err);
+      alert("❌ No se pudieron guardar las preferencias. Revisa la consola.");
+    }
   };
 
   const handleReset = () => {
@@ -466,6 +651,7 @@ export default function Preferences() {
     setGlobalError("");
   };
 
+  /* =================== Render =================== */
   return (
     <div className="pref-page">
       <div className="pref-container">
@@ -481,37 +667,61 @@ export default function Preferences() {
             <div className="grid-2">
               <div className="field">
                 <label>Barrio (Neighborhood)</label>
-                <select className="input" value={form.preferred_neighborhood} onChange={onSel("preferred_neighborhood")}>
+                <select
+                  className="input"
+                  value={form.preferred_neighborhood}
+                  onChange={onSel("preferred_neighborhood")}
+                >
                   <Options values={C.Neighborhood} placeholder="Selecciona barrio" />
                 </select>
               </div>
               <div className="field">
                 <label>MS Zoning</label>
-                <select className="input" value={form.preferred_ms_zoning} onChange={onSel("preferred_ms_zoning")}>
+                <select
+                  className="input"
+                  value={form.preferred_ms_zoning}
+                  onChange={onSel("preferred_ms_zoning")}
+                >
                   <Options values={C.MSZoning} placeholder="Selecciona MS Zoning" />
                 </select>
               </div>
               <div className="field">
                 <label>Lot Shape</label>
-                <select className="input" value={form.preferred_lot_shape} onChange={onSel("preferred_lot_shape")}>
+                <select
+                  className="input"
+                  value={form.preferred_lot_shape}
+                  onChange={onSel("preferred_lot_shape")}
+                >
                   <Options values={C.LotShape} placeholder="Selecciona Lot Shape" />
                 </select>
               </div>
               <div className="field">
                 <label>Land Contour</label>
-                <select className="input" value={form.preferred_land_contour} onChange={onSel("preferred_land_contour")}>
+                <select
+                  className="input"
+                  value={form.preferred_land_contour}
+                  onChange={onSel("preferred_land_contour")}
+                >
                   <Options values={C.LandContour} placeholder="Selecciona Land Contour" />
                 </select>
               </div>
               <div className="field">
                 <label>Lot Config</label>
-                <select className="input" value={form.preferred_lot_config} onChange={onSel("preferred_lot_config")}>
+                <select
+                  className="input"
+                  value={form.preferred_lot_config}
+                  onChange={onSel("preferred_lot_config")}
+                >
                   <Options values={C.LotConfig} placeholder="Selecciona Lot Config" />
                 </select>
               </div>
               <div className="field">
                 <label>Condition1</label>
-                <select className="input" value={form.preferred_condition1} onChange={onSel("preferred_condition1")}>
+                <select
+                  className="input"
+                  value={form.preferred_condition1}
+                  onChange={onSel("preferred_condition1")}
+                >
                   <Options values={C.Condition1} placeholder="Selecciona Condition1" />
                 </select>
               </div>
@@ -524,37 +734,61 @@ export default function Preferences() {
             <div className="grid-2">
               <div className="field">
                 <label>BldgType</label>
-                <select className="input" value={form.preferred_bldg_type} onChange={onSel("preferred_bldg_type")}>
+                <select
+                  className="input"
+                  value={form.preferred_bldg_type}
+                  onChange={onSel("preferred_bldg_type")}
+                >
                   <Options values={C.BldgType} placeholder="Selecciona BldgType" />
                 </select>
               </div>
               <div className="field">
                 <label>HouseStyle</label>
-                <select className="input" value={form.preferred_house_style} onChange={onSel("preferred_house_style")}>
+                <select
+                  className="input"
+                  value={form.preferred_house_style}
+                  onChange={onSel("preferred_house_style")}
+                >
                   <Options values={C.HouseStyle} placeholder="Selecciona HouseStyle" />
                 </select>
               </div>
               <div className="field">
                 <label>RoofStyle</label>
-                <select className="input" value={form.preferred_roof_style} onChange={onSel("preferred_roof_style")}>
+                <select
+                  className="input"
+                  value={form.preferred_roof_style}
+                  onChange={onSel("preferred_roof_style")}
+                >
                   <Options values={C.RoofStyle} placeholder="Selecciona RoofStyle" />
                 </select>
               </div>
               <div className="field">
                 <label>Exterior1st</label>
-                <select className="input" value={form.preferred_exterior1st} onChange={onSel("preferred_exterior1st")}>
+                <select
+                  className="input"
+                  value={form.preferred_exterior1st}
+                  onChange={onSel("preferred_exterior1st")}
+                >
                   <Options values={C.Exterior1st} placeholder="Selecciona Exterior1st" />
                 </select>
               </div>
               <div className="field">
                 <label>Exterior2nd</label>
-                <select className="input" value={form.preferred_exterior2nd} onChange={onSel("preferred_exterior2nd")}>
+                <select
+                  className="input"
+                  value={form.preferred_exterior2nd}
+                  onChange={onSel("preferred_exterior2nd")}
+                >
                   <Options values={C.Exterior2nd} placeholder="Selecciona Exterior2nd" />
                 </select>
               </div>
               <div className="field">
                 <label>Foundation</label>
-                <select className="input" value={form.preferred_foundation} onChange={onSel("preferred_foundation")}>
+                <select
+                  className="input"
+                  value={form.preferred_foundation}
+                  onChange={onSel("preferred_foundation")}
+                >
                   <Options values={C.Foundation} placeholder="Selecciona Foundation" />
                 </select>
               </div>
@@ -565,29 +799,85 @@ export default function Preferences() {
           <section className="pref-section">
             <h2 className="section-title">Calidad & Condición</h2>
             <div className="grid-2">
-              <NumberRange label="OverallQual" minKey="min_overall_qual" maxKey="max_overall_qual" state={form} setState={setForm} />
-              <NumberRange label="OverallCond" minKey="min_overall_cond" maxKey="max_overall_cond" state={form} setState={setForm} />
+              <NumberRange
+                label="OverallQual"
+                minKey="min_overall_qual"
+                maxKey="max_overall_qual"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="OverallCond"
+                minKey="min_overall_cond"
+                maxKey="max_overall_cond"
+                state={form}
+                setState={setForm}
+              />
               <div className="field">
                 <label>Umbral ExterQual (mín.)</label>
-                <select className="input" value={form.min_exter_qual} onChange={onSel("min_exter_qual")}>
+                <select
+                  className="input"
+                  value={form.min_exter_qual}
+                  onChange={onSel("min_exter_qual")}
+                >
                   <Options values={C.ExterQual} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>Umbral ExterCond (mín.)</label>
-                <select className="input" value={form.min_exter_cond} onChange={onSel("min_exter_cond")}>
+                <select
+                  className="input"
+                  value={form.min_exter_cond}
+                  onChange={onSel("min_exter_cond")}
+                >
                   <Options values={C.ExterCond} placeholder="(cualquiera)" />
                 </select>
               </div>
             </div>
           </section>
 
-          {/* Años */}
+          {/* Años & Edades */}
           <section className="pref-section">
-            <h2 className="section-title">Años</h2>
+            <h2 className="section-title">Años & Edades</h2>
             <div className="grid-2">
-              <NumberRange label="YearBuilt" minKey="min_year_built" maxKey="max_year_built" state={form} setState={setForm} step="1" />
-              <NumberRange label="YearRemodAdd" minKey="min_year_remod_add" maxKey="max_year_remod_add" state={form} setState={setForm} step="1" />
+              <NumberRange
+                label="YearBuilt"
+                minKey="min_year_built"
+                maxKey="max_year_built"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="YearRemodAdd"
+                minKey="min_year_remod_add"
+                maxKey="max_year_remod_add"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="YrSold (solo cálculo)"
+                minKey="min_yr_sold"
+                maxKey="max_yr_sold"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="HouseAge (fallback manual)"
+                minKey="min_house_age"
+                maxKey="max_house_age"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="RemodAge (fallback manual)"
+                minKey="min_remod_age"
+                maxKey="max_remod_age"
+                state={form}
+                setState={setForm}
+              />
             </div>
           </section>
 
@@ -595,10 +885,34 @@ export default function Preferences() {
           <section className="pref-section">
             <h2 className="section-title">Tamaños & Áreas (ft²)</h2>
             <div className="grid-2">
-              <NumberRange label="LotArea" minKey="min_lot_area" maxKey="max_lot_area" state={form} setState={setForm} />
-              <NumberRange label="LotFrontage (ft)" minKey="min_lot_frontage" maxKey="max_lot_frontage" state={form} setState={setForm} />
-              <NumberRange label="GrLivArea" minKey="min_gr_liv_area" maxKey="max_gr_liv_area" state={form} setState={setForm} />
-              <NumberRange label="TotalBsmtSF" minKey="min_total_bsmt_sf" maxKey="max_total_bsmt_sf" state={form} setState={setForm} />
+              <NumberRange
+                label="LotArea"
+                minKey="min_lot_area"
+                maxKey="max_lot_area"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="LotFrontage (ft)"
+                minKey="min_lot_frontage"
+                maxKey="max_lot_frontage"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="GrLivArea"
+                minKey="min_gr_liv_area"
+                maxKey="max_gr_liv_area"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="TotalBsmtSF"
+                minKey="min_total_bsmt_sf"
+                maxKey="max_total_bsmt_sf"
+                state={form}
+                setState={setForm}
+              />
             </div>
           </section>
 
@@ -606,12 +920,31 @@ export default function Preferences() {
           <section className="pref-section">
             <h2 className="section-title">Superficie total (TotalSF)</h2>
             <p className="field-hint">
-              TotalSF = 1stFlrSF + 2ndFlrSF + TotalBsmtSF. Aquí ingresas los tres componentes y nosotros calculamos y enviamos solo TotalSF.
+              TotalSF = 1stFlrSF + 2ndFlrSF + TotalBsmtSF. Si solo llenas un lado (mín. o máx.),
+              usaremos ese mismo valor para ambos al guardar.
             </p>
             <div className="grid-2">
-              <NumberRange label="1stFlrSF" minKey="totalSF_min_1st" maxKey="totalSF_max_1st" state={form} setState={setForm} />
-              <NumberRange label="2ndFlrSF" minKey="totalSF_min_2nd" maxKey="totalSF_max_2nd" state={form} setState={setForm} />
-              <NumberRange label="TotalBsmtSF" minKey="totalSF_min_bsmt" maxKey="totalSF_max_bsmt" state={form} setState={setForm} />
+              <NumberRange
+                label="1stFlrSF"
+                minKey="totalSF_min_1st"
+                maxKey="totalSF_max_1st"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="2ndFlrSF"
+                minKey="totalSF_min_2nd"
+                maxKey="totalSF_max_2nd"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="TotalBsmtSF (para TotalSF)"
+                minKey="totalSF_min_bsmt"
+                maxKey="totalSF_max_bsmt"
+                state={form}
+                setState={setForm}
+              />
             </div>
           </section>
 
@@ -619,13 +952,62 @@ export default function Preferences() {
           <section className="pref-section">
             <h2 className="section-title">Habitaciones & Baños</h2>
             <div className="grid-2">
-              <NumberRange label="Bedrooms (abv gr)" minKey="min_bedroom_abv_gr" maxKey="max_bedroom_abv_gr" state={form} setState={setForm} step="1" />
-              <NumberRange label="Kitchens" minKey="min_kitchen_abv_gr" maxKey="max_kitchen_abv_gr" state={form} setState={setForm} step="1" />
-              <NumberRange label="Total rooms (abv grd)" minKey="min_tot_rms_abv_grd" maxKey="max_tot_rms_abv_grd" state={form} setState={setForm} step="1" />
-              <NumberRange label="Full baths" minKey="min_full_bath" maxKey="max_full_bath" state={form} setState={setForm} step="1" />
-              <NumberRange label="Half baths" minKey="min_half_bath" maxKey="max_half_bath" state={form} setState={setForm} step="1" />
-              <NumberRange label="Bsmt full bath" minKey="min_bsmt_full_bath" maxKey="max_bsmt_full_bath" state={form} setState={setForm} step="1" />
-              <NumberRange label="Bsmt half bath" minKey="min_bsmt_half_bath" maxKey="max_bsmt_half_bath" state={form} setState={setForm} step="1" />
+              <NumberRange
+                label="Bedrooms (abv gr)"
+                minKey="min_bedroom_abv_gr"
+                maxKey="max_bedroom_abv_gr"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="Kitchens"
+                minKey="min_kitchen_abv_gr"
+                maxKey="max_kitchen_abv_gr"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="Total rooms (abv grd)"
+                minKey="min_tot_rms_abv_grd"
+                maxKey="max_tot_rms_abv_grd"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="Full baths"
+                minKey="min_full_bath"
+                maxKey="max_full_bath"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="Half baths"
+                minKey="min_half_bath"
+                maxKey="max_half_bath"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="Bsmt full bath"
+                minKey="min_bsmt_full_bath"
+                maxKey="max_bsmt_full_bath"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="Bsmt half bath"
+                minKey="min_bsmt_half_bath"
+                maxKey="max_bsmt_half_bath"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
             </div>
           </section>
 
@@ -635,37 +1017,75 @@ export default function Preferences() {
             <div className="grid-2">
               <div className="field">
                 <label>BsmtQual</label>
-                <select className="input" value={form.preferred_bsmt_qual} onChange={onSel("preferred_bsmt_qual")}>
+                <select
+                  className="input"
+                  value={form.preferred_bsmt_qual}
+                  onChange={onSel("preferred_bsmt_qual")}
+                >
                   <Options values={C.BsmtQual} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>BsmtCond</label>
-                <select className="input" value={form.preferred_bsmt_cond} onChange={onSel("preferred_bsmt_cond")}>
+                <select
+                  className="input"
+                  value={form.preferred_bsmt_cond}
+                  onChange={onSel("preferred_bsmt_cond")}
+                >
                   <Options values={C.BsmtCond} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>BsmtExposure</label>
-                <select className="input" value={form.preferred_bsmt_exposure} onChange={onSel("preferred_bsmt_exposure")}>
+                <select
+                  className="input"
+                  value={form.preferred_bsmt_exposure}
+                  onChange={onSel("preferred_bsmt_exposure")}
+                >
                   <Options values={C.BsmtExposure} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>BsmtFinType1</label>
-                <select className="input" value={form.preferred_bsmt_fin_type1} onChange={onSel("preferred_bsmt_fin_type1")}>
+                <select
+                  className="input"
+                  value={form.preferred_bsmt_fin_type1}
+                  onChange={onSel("preferred_bsmt_fin_type1")}
+                >
                   <Options values={C.BsmtFinType1} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>BsmtFinType2</label>
-                <select className="input" value={form.preferred_bsmt_fin_type2} onChange={onSel("preferred_bsmt_fin_type2")}>
+                <select
+                  className="input"
+                  value={form.preferred_bsmt_fin_type2}
+                  onChange={onSel("preferred_bsmt_fin_type2")}
+                >
                   <Options values={C.BsmtFinType2} placeholder="(cualquiera)" />
                 </select>
               </div>
-              <NumberRange label="BsmtFinSF1" minKey="min_bsmt_fin_sf1" maxKey="max_bsmt_fin_sf1" state={form} setState={setForm} />
-              <NumberRange label="BsmtFinSF2" minKey="min_bsmt_fin_sf2" maxKey="max_bsmt_fin_sf2" state={form} setState={setForm} />
-              <NumberRange label="BsmtUnfSF" minKey="min_bsmt_unf_sf" maxKey="max_bsmt_unf_sf" state={form} setState={setForm} />
+              <NumberRange
+                label="BsmtFinSF1"
+                minKey="min_bsmt_fin_sf1"
+                maxKey="max_bsmt_fin_sf1"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="BsmtFinSF2"
+                minKey="min_bsmt_fin_sf2"
+                maxKey="max_bsmt_fin_sf2"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="BsmtUnfSF"
+                minKey="min_bsmt_unf_sf"
+                maxKey="max_bsmt_unf_sf"
+                state={form}
+                setState={setForm}
+              />
             </div>
           </section>
 
@@ -675,14 +1095,26 @@ export default function Preferences() {
             <div className="grid-2">
               <div className="field">
                 <label>HeatingQC</label>
-                <select className="input" value={form.preferred_heating_qc} onChange={onSel("preferred_heating_qc")}>
+                <select
+                  className="input"
+                  value={form.preferred_heating_qc}
+                  onChange={onSel("preferred_heating_qc")}
+                >
                   <Options values={C.HeatingQC} placeholder="(cualquiera)" />
                 </select>
               </div>
-              <YesNo label="¿Requiere aire acondicionado central?" value={form.central_air_required === "" ? "" : form.central_air_required} onChange={onBool("central_air_required")} />
+              <YesNo
+                label="¿Requiere aire acondicionado central?"
+                value={form.central_air_required === "" ? "" : form.central_air_required}
+                onChange={onBool("central_air_required")}
+              />
               <div className="field">
                 <label>Electrical</label>
-                <select className="input" value={form.preferred_electrical} onChange={onSel("preferred_electrical")}>
+                <select
+                  className="input"
+                  value={form.preferred_electrical}
+                  onChange={onSel("preferred_electrical")}
+                >
                   <Options values={C.Electrical} placeholder="(cualquiera)" />
                 </select>
               </div>
@@ -695,20 +1127,39 @@ export default function Preferences() {
             <div className="grid-2">
               <div className="field">
                 <label>Umbral KitchenQual (mín.)</label>
-                <select className="input" value={form.min_kitchen_qual} onChange={onSel("min_kitchen_qual")}>
+                <select
+                  className="input"
+                  value={form.min_kitchen_qual}
+                  onChange={onSel("min_kitchen_qual")}
+                >
                   <Options values={C.KitchenQual} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>Functional</label>
-                <select className="input" value={form.preferred_functional} onChange={onSel("preferred_functional")}>
+                <select
+                  className="input"
+                  value={form.preferred_functional}
+                  onChange={onSel("preferred_functional")}
+                >
                   <Options values={C.Functional} placeholder="(cualquiera)" />
                 </select>
               </div>
-              <NumberRange label="Fireplaces" minKey="min_fireplaces" maxKey="max_fireplaces" state={form} setState={setForm} step="1" />
+              <NumberRange
+                label="Fireplaces"
+                minKey="min_fireplaces"
+                maxKey="max_fireplaces"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
               <div className="field">
                 <label>FireplaceQu</label>
-                <select className="input" value={form.preferred_fireplace_qu} onChange={onSel("preferred_fireplace_qu")}>
+                <select
+                  className="input"
+                  value={form.preferred_fireplace_qu}
+                  onChange={onSel("preferred_fireplace_qu")}
+                >
                   <Options values={C.FireplaceQu} placeholder="(cualquiera)" />
                 </select>
               </div>
@@ -721,34 +1172,74 @@ export default function Preferences() {
             <div className="grid-2">
               <div className="field">
                 <label>GarageType</label>
-                <select className="input" value={form.preferred_garage_type} onChange={onSel("preferred_garage_type")}>
+                <select
+                  className="input"
+                  value={form.preferred_garage_type}
+                  onChange={onSel("preferred_garage_type")}
+                >
                   <Options values={C.GarageType} placeholder="(cualquiera)" />
                 </select>
               </div>
-              <NumberRange label="GarageYrBlt" minKey="min_garage_yr_blt" maxKey="max_garage_yr_blt" state={form} setState={setForm} step="1" />
+              <NumberRange
+                label="GarageYrBlt"
+                minKey="min_garage_yr_blt"
+                maxKey="max_garage_yr_blt"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
               <div className="field">
                 <label>GarageFinish</label>
-                <select className="input" value={form.preferred_garage_finish} onChange={onSel("preferred_garage_finish")}>
+                <select
+                  className="input"
+                  value={form.preferred_garage_finish}
+                  onChange={onSel("preferred_garage_finish")}
+                >
                   <Options values={C.GarageFinish} placeholder="(cualquiera)" />
                 </select>
               </div>
-              <NumberRange label="GarageCars" minKey="min_garage_cars" maxKey="max_garage_cars" state={form} setState={setForm} step="1" />
-              <NumberRange label="GarageArea" minKey="min_garage_area" maxKey="max_garage_area" state={form} setState={setForm} />
+              <NumberRange
+                label="GarageCars"
+                minKey="min_garage_cars"
+                maxKey="max_garage_cars"
+                state={form}
+                setState={setForm}
+                step="1"
+              />
+              <NumberRange
+                label="GarageArea"
+                minKey="min_garage_area"
+                maxKey="max_garage_area"
+                state={form}
+                setState={setForm}
+              />
               <div className="field">
                 <label>GarageQual</label>
-                <select className="input" value={form.preferred_garage_qual} onChange={onSel("preferred_garage_qual")}>
+                <select
+                  className="input"
+                  value={form.preferred_garage_qual}
+                  onChange={onSel("preferred_garage_qual")}
+                >
                   <Options values={C.GarageQual} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>GarageCond</label>
-                <select className="input" value={form.preferred_garage_cond} onChange={onSel("preferred_garage_cond")}>
+                <select
+                  className="input"
+                  value={form.preferred_garage_cond}
+                  onChange={onSel("preferred_garage_cond")}
+                >
                   <Options values={C.GarageCond} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>PavedDrive</label>
-                <select className="input" value={form.preferred_paved_drive} onChange={onSel("preferred_paved_drive")}>
+                <select
+                  className="input"
+                  value={form.preferred_paved_drive}
+                  onChange={onSel("preferred_paved_drive")}
+                >
                   <Options values={C.PavedDrive} placeholder="(cualquiera)" />
                 </select>
               </div>
@@ -759,11 +1250,41 @@ export default function Preferences() {
           <section className="pref-section">
             <h2 className="section-title">Porches & Exteriores</h2>
             <div className="grid-2">
-              <NumberRange label="WoodDeckSF" minKey="min_wood_deck_sf" maxKey="max_wood_deck_sf" state={form} setState={setForm} />
-              <NumberRange label="OpenPorchSF" minKey="min_open_porch_sf" maxKey="max_open_porch_sf" state={form} setState={setForm} />
-              <NumberRange label="EnclosedPorch" minKey="min_enclosed_porch" maxKey="max_enclosed_porch" state={form} setState={setForm} />
-              <NumberRange label="3SsnPorch" minKey="min_3ssn_porch" maxKey="max_3ssn_porch" state={form} setState={setForm} />
-              <NumberRange label="ScreenPorch" minKey="min_screen_porch" maxKey="max_screen_porch" state={form} setState={setForm} />
+              <NumberRange
+                label="WoodDeckSF"
+                minKey="min_wood_deck_sf"
+                maxKey="max_wood_deck_sf"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="OpenPorchSF"
+                minKey="min_open_porch_sf"
+                maxKey="max_open_porch_sf"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="EnclosedPorch"
+                minKey="min_enclosed_porch"
+                maxKey="max_enclosed_porch"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="3SsnPorch"
+                minKey="min_3ssn_porch"
+                maxKey="max_3ssn_porch"
+                state={form}
+                setState={setForm}
+              />
+              <NumberRange
+                label="ScreenPorch"
+                minKey="min_screen_porch"
+                maxKey="max_screen_porch"
+                state={form}
+                setState={setForm}
+              />
             </div>
           </section>
 
@@ -771,22 +1292,40 @@ export default function Preferences() {
           <section className="pref-section">
             <h2 className="section-title">Piscina & Misceláneos</h2>
             <div className="grid-2">
-              <NumberRange label="PoolArea" minKey="min_pool_area" maxKey="max_pool_area" state={form} setState={setForm} />
+              <NumberRange
+                label="PoolArea"
+                minKey="min_pool_area"
+                maxKey="max_pool_area"
+                state={form}
+                setState={setForm}
+              />
               <div className="field">
                 <label>PoolQC</label>
-                <select className="input" value={form.preferred_pool_qc} onChange={onSel("preferred_pool_qc")}>
+                <select
+                  className="input"
+                  value={form.preferred_pool_qc}
+                  onChange={onSel("preferred_pool_qc")}
+                >
                   <Options values={C.PoolQC} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>Fence</label>
-                <select className="input" value={form.preferred_fence} onChange={onSel("preferred_fence")}>
+                <select
+                  className="input"
+                  value={form.preferred_fence}
+                  onChange={onSel("preferred_fence")}
+                >
                   <Options values={C.Fence} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>MiscFeature</label>
-                <select className="input" value={form.preferred_misc_feature} onChange={onSel("preferred_misc_feature")}>
+                <select
+                  className="input"
+                  value={form.preferred_misc_feature}
+                  onChange={onSel("preferred_misc_feature")}
+                >
                   <Options values={C.MiscFeature} placeholder="(cualquiera)" />
                 </select>
               </div>
@@ -797,16 +1336,30 @@ export default function Preferences() {
           <section className="pref-section">
             <h2 className="section-title">Precio & Venta</h2>
             <div className="grid-2">
-              <NumberRange label="SalePrice ($)" minKey="min_sale_price" maxKey="max_sale_price" state={form} setState={setForm} />
+              <NumberRange
+                label="SalePrice ($)"
+                minKey="min_sale_price"
+                maxKey="max_sale_price"
+                state={form}
+                setState={setForm}
+              />
               <div className="field">
                 <label>SaleType</label>
-                <select className="input" value={form.preferred_sale_type} onChange={onSel("preferred_sale_type")}>
+                <select
+                  className="input"
+                  value={form.preferred_sale_type}
+                  onChange={onSel("preferred_sale_type")}
+                >
                   <Options values={C.SaleType} placeholder="(cualquiera)" />
                 </select>
               </div>
               <div className="field">
                 <label>SaleCondition</label>
-                <select className="input" value={form.preferred_sale_condition} onChange={onSel("preferred_sale_condition")}>
+                <select
+                  className="input"
+                  value={form.preferred_sale_condition}
+                  onChange={onSel("preferred_sale_condition")}
+                >
                   <Options values={C.SaleCondition} placeholder="(cualquiera)" />
                 </select>
               </div>
