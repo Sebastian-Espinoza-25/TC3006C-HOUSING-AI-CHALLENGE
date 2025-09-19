@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { datasetMeta, quickDemoData } from "./publishData";
-import "../../styles/seller/publishForms.css"; // estilos
+import { categoricalFields } from "./publishOptions";
+import "../../styles/seller/publishForms.css";
 
-// --- Utilidades de transformación ---
+
 const KEY_OVERRIDES = {
   TotalSF: "total_sf",
   OverallQual: "overall_qual",
@@ -95,18 +96,87 @@ function toSnakeCaseObject(obj) {
 const formatPrice = (v) =>
   new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0));
 
+
+// Define las secciones y los campos de cada una (solo los de quickDemoData)
+const formSections = [
+  {
+    label: "Generales",
+    fields: [
+      "TotalSF",
+      "OverallQual",
+      "OverallCond",
+      "GrLivArea",
+      "Neighborhood",
+      "YearBuilt",
+      "RemodAge",
+      "YearRemodAdd",
+      "HouseAge",
+      "1stFlrSF"
+    ]
+  },
+  {
+    label: "Características",
+    fields: [
+      "TotalBath",
+      "LotArea",
+      "CentralAir",
+      "GarageArea",
+      "GarageScore",
+      "GarageCars",
+      "BsmtFinSF1"
+    ]
+  },
+  {
+    label: "Extras",
+    fields: [
+      "SaleCondition",
+      "TotalPorchSF",
+      "2ndFlrSF",
+      "Fireplaces",
+      "RoomsPlusBathEq"
+    ]
+  }
+];
+
+const fieldLabels = {
+  TotalSF: "Superficie total (m²)",
+  OverallQual: "Calidad general",
+  OverallCond: "Condición general",
+  GrLivArea: "Área habitable (m²)",
+  Neighborhood: "Vecindario",
+  TotalBath: "Baños totales",
+  LotArea: "Área del terreno (m²)",
+  CentralAir: "Aire acondicionado central",
+  YearBuilt: "Año de construcción",
+  RemodAge: "Años desde remodelación",
+  YearRemodAdd: "Año de remodelación",
+  "1stFlrSF": "Superficie 1er piso (m²)",
+  HouseAge: "Edad de la casa (años)",
+  GarageArea: "Área de cochera (m²)",
+  GarageScore: "Puntaje de cochera",
+  BsmtFinSF1: "Sótano terminado 1 (m²)",
+  SaleCondition: "Condición de venta",
+  TotalPorchSF: "Superficie de porches (m²)",
+  GarageCars: "Coches en cochera",
+  "2ndFlrSF": "Superficie 2do piso (m²)",
+  Fireplaces: "Chimeneas",
+  RoomsPlusBathEq: "Habitaciones + baños eq.",
+};
+
 export default function Publish() {
-  const [formType, setFormType] = useState(null); // "quick" | "long"
+  const [formType, setFormType] = useState(null);
   const [formData, setFormData] = useState({});
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Sección activa del formulario
+  const [activeSection, setActiveSection] = useState(0);
 
   // Creación de casa
   const [showCreateCard, setShowCreateCard] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [lastPayload, setLastPayload] = useState(null);
 
-  // Campos adicionales (el usuario los llena). sale_price se precarga con el precio calculado (sin redondear).
   const [createData, setCreateData] = useState({
     title: "",
     sale_price: 0,
@@ -114,35 +184,41 @@ export default function Publish() {
     contact_email: "",
   });
 
-  const quickFields = [
-    "TotalSF","OverallQual","OverallCond","GrLivArea","Neighborhood","TotalBath","LotArea","CentralAir",
-    "YearBuilt","RemodAge","YearRemodAdd","1stFlrSF","HouseAge","GarageArea","GarageScore","BsmtFinSF1",
-    "SaleCondition","TotalPorchSF","GarageCars","2ndFlrSF","Fireplaces","RoomsPlusBathEq",
-  ];
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   // -------- Handlers --------
   const handleChange = (field, value) => { setFormData((prev) => ({ ...prev, [field]: value })); };
 
   const handleDemo = () => {
-    if (formType === "quick") { setFormData(quickDemoData); return; }
-    const newData = {};
-    const allFields = [
-      ...Object.keys(datasetMeta.numeric_means),
-      ...Object.keys(datasetMeta.categorical_uniques),
-    ];
-    allFields.forEach((f) => {
-      if (datasetMeta.numeric_means[f] !== undefined) newData[f] = datasetMeta.numeric_means[f];
-      else if (datasetMeta.categorical_uniques[f]) {
-        const opts = datasetMeta.categorical_uniques[f];
-        newData[f] = opts[Math.floor(Math.random() * opts.length)];
-      }
+    // Llena todos los campos de todas las secciones con quickDemoData si existe, si no, usa el meta
+    const demo = {};
+    formSections.forEach(section => {
+      section.fields.forEach(f => {
+        if (quickDemoData[f] !== undefined) {
+          demo[f] = quickDemoData[f];
+        } else if (datasetMeta.numeric_means[f] !== undefined) {
+          demo[f] = datasetMeta.numeric_means[f];
+        } else if (datasetMeta.categorical_uniques[f]) {
+          const opts = datasetMeta.categorical_uniques[f];
+          demo[f] = opts[Math.floor(Math.random() * opts.length)];
+        }
+      });
     });
-    setFormData(newData);
+    setFormData(demo);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const transformed = { ...formData }; // JSON camelCase para predicción
+    console.log("JSON enviado:", JSON.stringify(formData, null, 2));
+    // Asegura que los campos numéricos sean floats
+    const transformed = {};
+    Object.keys(formData).forEach((k) => {
+      if (datasetMeta.numeric_means[k] !== undefined) {
+        transformed[k] = parseFloat(formData[k]) || 0.0;
+      } else {
+        transformed[k] = formData[k];
+      }
+    });
     setLastPayload(transformed);
 
     try {
@@ -244,29 +320,32 @@ export default function Publish() {
 
   // -------- UI helpers --------
   const renderField = (field) => {
-    const isNumeric = datasetMeta.numeric_means[field] !== undefined;
+    // Busca si el campo es categórico y tiene opciones amigables
+    const catField = categoricalFields.find(f => f.name === field);
+    const label = catField?.label || fieldLabels[field] || field;
 
-    if (!isNumeric && datasetMeta.categorical_uniques[field]) {
+    if (catField) {
       return (
         <div className="field" key={field}>
-          <label>{field}</label>
+          <label>{label}</label>
           <select
             className="input"
             value={formData[field] ?? ""}
             onChange={(e) => handleChange(field, e.target.value)}
           >
-            <option value="">Select...</option>
-            {datasetMeta.categorical_uniques[field].map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
+            <option value="">Selecciona...</option>
+            {catField.options.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </div>
       );
     }
 
+    // Campos numéricos
     return (
       <div className="field" key={field}>
-        <label>{field}</label>
+        <label>{label}</label>
         <input
           className="input"
           type="number"
@@ -277,121 +356,233 @@ export default function Publish() {
     );
   };
 
+  const [startAnim, setStartAnim] = useState(false);
+
+  const handleStartClick = () => {
+    setStartAnim(true);
+    setTimeout(() => {
+      setFormType("quick");
+      setStartAnim(false);
+    }, 900);
+  };
+
+  // Calcula el porcentaje de progreso basado en campos llenados
+  const allFields = formSections.flatMap(section => section.fields);
+  const filledFields = allFields.filter(f => formData[f] !== undefined && formData[f] !== "" && formData[f] !== null);
+  const progressPercent = (filledFields.length / allFields.length) * 100;
+
+  // Estado para controlar el submit en la última sección
+  const [canSubmit, setCanSubmit] = useState(true);
+
+  useEffect(() => {
+    if (activeSection === formSections.length - 1) {
+      setCanSubmit(false);
+      const timer = setTimeout(() => setCanSubmit(true), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanSubmit(true);
+    }
+  }, [activeSection]);
+
   // -------- Render --------
   return (
-    <div className="pref-page">
-      <div className="pref-container">
-        <h1 className="pref-title">Publish a New House</h1>
-        <p className="pref-subtitle">Fill in the form to predict a house price.</p>
-
-        {!formType && (
-          <div className="form-actions">
-            <button className="btn" onClick={() => setFormType("quick")}>Quick Form</button>
-            {/* Eliminado el botón de Long Form */}
-          </div>
-        )}
-
-        {formType && (
-          <form className="pref-form" onSubmit={handleSubmit}>
-            <div className="pref-section">
-              <div className="form-actions">
-                <button type="button" className="btn ghost" onClick={handleDemo}>Demo</button>
-              </div>
-
-              <h3 className="section-title">Form</h3>
-
-              <div className="grid-2">
-                {quickFields.map((f) => renderField(f))}
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn" disabled={loading}>
-                  {loading ? "Submitting..." : "Submit"}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {prediction && (
-          <div className="pref-section">
-            <h3 className="section-title">PRICE</h3>
-            <div className="pref-title" style={{ fontSize: "clamp(22px, 4vw, 36px)", margin: 0 }}>
-              {formatPrice(prediction?.predicted_price)}
-            </div>
-
-            {!showCreateCard && (
-              <div className="form-actions">
-                <button className="btn" onClick={handleCreateHouse}>Crea tu casa ahora</button>
-              </div>
+    <div className="publish-bg">
+      {/* Card de inicio */}
+      {!formType && (
+        <div className="publish-start-card">
+          <h1 className="publish-title">Publica una casa</h1>
+          <p className="publish-subtitle">Llena el formulario para predecir el precio de una casa.</p>
+          <button
+            className={`start-btn-anim${startAnim ? " animating" : ""}`}
+            onClick={handleStartClick}
+            disabled={startAnim}
+          >
+            {startAnim ? (
+              <span className="checkmark">
+                <svg viewBox="0 0 32 32" width="28" height="28">
+                  <polyline
+                    points="8 17.5 14 23 24 11"
+                    style={{
+                      fill: "none",
+                      stroke: "#fff",
+                      strokeWidth: 3.5,
+                      strokeLinecap: "round",
+                      strokeLinejoin: "round",
+                    }}
+                  />
+                </svg>
+              </span>
+            ) : (
+              "Comenzar"
             )}
+          </button>
+        </div>
+      )}
+
+      {/* Card del formulario multisección */}
+      {formType && (
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          {/* Tabs de secciones - FUERA de la card */}
+          <div className="form-tabs">
+            {formSections.map((section, idx) => (
+              <button
+                key={section.label}
+                className={`form-tab${activeSection === idx ? " active" : ""}`}
+                onClick={() => setActiveSection(idx)}
+                type="button"
+                disabled={activeSection === idx}
+              >
+                {section.label}
+              </button>
+            ))}
           </div>
-        )}
 
-        {showCreateCard && (
-          <div className="pref-section">
-            <h3 className="section-title">Detalles de la publicación</h3>
-            <form className="pref-form" onSubmit={handleCreateHouseSubmit}>
-              <div className="grid-2">
-                <div className="field">
-                  <label>Título</label>
-                  <input
-                    className="input"
-                    type="text"
-                    value={createData.title}
-                    placeholder="Título del anuncio"
-                    onChange={(e) => handleCreateDataChange("title", e.target.value)}
-                    required
-                  />
-                </div>
+          {/* Card del formulario multisección */}
+          <div className="form-card">
+            {/* Aquí va la barra de progreso */}
+            <div className="form-progress-bar-outer">
+              <div
+                className="form-progress-bar-inner"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
 
-                <div className="field">
-                  <label>Precio de venta (calculado)</label>
-                  <input
-                    className="input"
-                    type="number"
-                    value={createData.sale_price}
-                    readOnly
-                  />
-                </div>
-
-                <div className="field">
-                  <label>Teléfono de contacto</label>
-                  <input
-                    className="input"
-                    type="tel"
-                    value={createData.contact_phone}
-                    placeholder="Ej. 555-0123"
-                    onChange={(e) => handleCreateDataChange("contact_phone", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="field">
-                  <label>Email de contacto</label>
-                  <input
-                    className="input"
-                    type="email"
-                    value={createData.contact_email}
-                    placeholder="vendor@example.com"
-                    onChange={(e) => handleCreateDataChange("contact_email", e.target.value)}
-                    required
-                  />
-                </div>
+            {/* Formulario de la sección activa */}
+            <form
+              className="pref-form"
+              onSubmit={(e) => {
+                // Solo permite submit si está en la última sección y fue por botón
+                if (activeSection !== formSections.length - 1 || !hasSubmitted) {
+                  e.preventDefault();
+                  setHasSubmitted(false);
+                  return;
+                }
+                handleSubmit(e);
+                setHasSubmitted(false); // reset
+              }}
+              onKeyDown={(e) => {
+                // Previene submit con Enter en cualquier campo
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                }
+              }}
+            >
+              <div
+                className={
+                  "form-fields" +
+                  (formSections[activeSection].fields.length > 5 ? " grid-2" : "")
+                }
+              >
+                {formSections[activeSection].fields.map((f) => renderField(f))}
               </div>
-
               <div className="form-actions">
-                <button type="submit" className="btn" disabled={createLoading}>
-                  {createLoading ? "Creando..." : "Crear casa"}
-                </button>
-                <button type="button" className="btn ghost" onClick={() => setShowCreateCard(false)}>
-                  Cancelar
+                {activeSection > 0 && (
+                  <button type="button" className="btn ghost" onClick={() => setActiveSection(activeSection - 1)}>
+                    Anterior
+                  </button>
+                )}
+                {activeSection < formSections.length - 1 ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setActiveSection(activeSection + 1)}
+                  >
+                    Siguiente
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="btn"
+                    disabled={loading || !canSubmit}
+                    onClick={() => setHasSubmitted(true)}
+                  >
+                    {loading ? "Enviando..." : "Enviar"}
+                  </button>
+                )}
+                <button type="button" className="btn ghost" onClick={handleDemo} style={{marginLeft: "auto"}}>
+                  Demo
                 </button>
               </div>
             </form>
+
+            {/* Resultado de predicción */}
+            {prediction && (
+              <div className="form-result">
+                <h3 className="section-title">PRECIO ESTIMADO</h3>
+                <div className="pref-title" style={{ fontSize: "clamp(22px, 4vw, 36px)", margin: 0 }}>
+                  {formatPrice(prediction?.predicted_price)}
+                </div>
+                {!showCreateCard && (
+                  <div className="form-actions">
+                    <button className="btn" onClick={() => setShowCreateCard(true)}>Crea tu casa ahora</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Card para crear la casa */}
+            {showCreateCard && (
+              <div className="form-result">
+                <h3 className="section-title">Detalles de la publicación</h3>
+                <form className="pref-form" onSubmit={handleCreateHouseSubmit}>
+                  <div className="form-fields">
+                    <div className="field">
+                      <label>Título</label>
+                      <input
+                        className="input"
+                        type="text"
+                        value={createData.title}
+                        placeholder="Título del anuncio"
+                        onChange={(e) => setCreateData((prev) => ({ ...prev, title: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Precio de venta (calculado)</label>
+                      <input
+                        className="input"
+                        type="number"
+                        value={createData.sale_price}
+                        readOnly
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Teléfono de contacto</label>
+                      <input
+                        className="input"
+                        type="tel"
+                        value={createData.contact_phone}
+                        placeholder="Ej. 555-0123"
+                        onChange={(e) => setCreateData((prev) => ({ ...prev, contact_phone: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Email de contacto</label>
+                      <input
+                        className="input"
+                        type="email"
+                        value={createData.contact_email}
+                        placeholder="vendor@example.com"
+                        onChange={(e) => setCreateData((prev) => ({ ...prev, contact_email: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-actions">
+                    <button type="submit" className="btn" disabled={createLoading}>
+                      {createLoading ? "Creando..." : "Crear casa"}
+                    </button>
+                    <button type="button" className="btn ghost" onClick={() => setShowCreateCard(false)}>
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

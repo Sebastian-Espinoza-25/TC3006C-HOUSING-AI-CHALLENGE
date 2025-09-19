@@ -16,14 +16,32 @@
   margin: 2px 0 16px;
 }
 
+/* Fondo degradado */
+.rec-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background:
+    radial-gradient(1100px 600px at 85% -10%, #e7dcc9 0%, transparent 60%),
+    radial-gradient(900px 500px at -10% 90%, #f2eadb 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg, #f6f3ef), var(--bg-2, #f9f7f3));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 48px;
+}
+
 /* Rail tipo slider vertical (scroll-snap) */
-.rec-rail{
-  height: min(70vh, 720px);
-  overflow-y: auto;
-  padding-right: 6px;
+.rec-rail {
   display: grid;
-  gap: clamp(12px, 1.8vw, 16px);
-  scroll-snap-type: y mandatory;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: clamp(18px, 2vw, 32px);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 12px;
+  overflow: visible;
+  height: auto;
+  align-items: start; /* <-- Esto permite que cada card tenga su propia altura */
 }
 
 /* States */
@@ -36,24 +54,25 @@
   color: var(--muted, #6b7280);
 }
 
-/* Card */
-.rec-card{
-  background: var(--glass-strong, rgba(255,255,255,.82));
+/* Card tipo Airbnb */
+.airbnb-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  min-height: 380px;
+  max-width: 100%;
+  box-shadow: 0 8px 24px rgba(191,169,129,.13);
+  background: var(--glass-strong, #fff);
   border: 1px solid var(--stroke, rgba(30,41,59,.10));
-  border-radius: var(--radius-lg, 16px);
-  box-shadow: var(--shadow-2, 0 8px 20px rgba(17,24,39,.10));
-  backdrop-filter: blur(var(--blur, 18px)) saturate(1.05);
-  -webkit-backdrop-filter: blur(var(--blur, 18px)) saturate(1.05);
-  padding: clamp(12px, 1.8vw, 16px);
-  scroll-snap-align: start;
-  transition: transform .12s ease, box-shadow .18s ease, border-color .18s ease;
+  transition: box-shadow .18s, border-color .18s;
   cursor: pointer;
-  user-select: none;
+  position: relative;
 }
-.rec-card:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(17,24,39,.12);
-  border-color: rgba(191,169,129,.35);
+.airbnb-card:hover {
+  box-shadow: 0 16px 36px rgba(191,169,129,.18);
+  border-color: rgba(191,169,129,.25);
 }
 
 /* Head */
@@ -147,3 +166,169 @@
   background-size: cover;
   background-position: center;
 }
+
+/* Imagen arriba */
+.rec-img-top {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background-color: #eee;
+  background-size: cover;
+  background-position: center;
+  min-height: 180px;
+  max-height: 220px;
+}
+
+/* Main info */
+.rec-main-airbnb {
+  padding: 16px 18px 8px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rec-title-airbnb {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 2px 0;
+  color: #2b3136;
+  letter-spacing: .2px;
+}
+.rec-price-airbnb {
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: #bfa981;
+  margin-bottom: 4px;
+}
+.rec-features-airbnb {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.rec-feature {
+  font-size: 13px;
+  color: #6b7280;
+  background: #f6f3ef;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid var(--stroke, #e5e7eb);
+}
+
+/* Botón detalles */
+.rec-more-airbnb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--hint, #8c9198);
+  padding: 0 18px 8px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Detalles expandidos */
+.rec-details-airbnb {
+  background: #f9f7f3;
+  border-top: 1px solid #ece6d9;
+  padding: 14px 18px 12px 18px;
+  font-size: 14px;
+  max-height: 180px;
+  overflow-y: auto;
+  transition: max-height .25s cubic-bezier(.4,0,.2,1);
+  border-radius: 0 0 18px 18px;
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 16px;
+}
+.airbnb-card:not(.is-open) .rec-details-airbnb {
+  display: none;
+}
+.rec-feature-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border-radius: 999px;
+  border: 1.5px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(191,169,129,.07);
+  padding: 7px 16px 5px 16px;
+  min-width: 62px;
+  margin-right: 4px;
+}
+.rec-feature-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #bfa981;
+  line-height: 1.1;
+}
+.rec-feature-label {
+  font-size: 12px;
+  color: #8c9198;
+  font-weight: 500;
+  margin-top: 1px;
+  letter-spacing: .1px;
+}
+.rec-summary {
+  grid-column: 1/-1;
+  font-size: 15px;
+  color: #374151;
+  margin-bottom: 8px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-weight: 500;
+}
+
+/* Grid para detalles adicionales */
+.rec-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-top: 6px;
+  margin-bottom: 18px;
+  grid-column: 1 / -1; /* <-- Esto hace que ocupe todo el ancho del grid padre */
+}
+@media (max-width: 600px) {
+  .rec-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tarjeta de contacto */
+.rec-contact-card {
+  grid-column: 1/-1;
+  background: #ece6d9;
+  border-radius: 12px;
+  padding: 16px 14px 10px 14px;
+  margin-top: 18px;
+  margin-bottom: 2px;
+  box-shadow: 0 2px 8px rgba(191,169,129,.07);
+}
+
+.rec-contact-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #7c6a4d;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.rec-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+
+.rec-details-section {
+  display: contents; /* para no romper el grid del padre */
+}
+.rec-details-title {
+  grid-column: 1 / -1;
+  font-weight: 700;
+  color: #7c6a4d;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+

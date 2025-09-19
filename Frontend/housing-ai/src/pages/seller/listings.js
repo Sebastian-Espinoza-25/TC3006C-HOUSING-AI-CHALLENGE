@@ -24,12 +24,10 @@ const getAuthToken = () => {
 
 const getVendorIdFromLocalStorage = () => {
   try {
-    // intentos directos
     const direct =
       localStorage.getItem("vendorId") || localStorage.getItem("vendor_id");
     if (direct) return Number(direct);
 
-    // estructuras comunes
     const raw =
       localStorage.getItem("vendor") ||
       localStorage.getItem("user") ||
@@ -51,9 +49,11 @@ const getVendorIdFromLocalStorage = () => {
   }
 };
 
+const formatFeature = (v, unit = "") =>
+  v != null ? `${v}${unit}` : "N/A";
+
 /* ========== Cargar fotos (Vite o CRA) ========== */
 const loadHousePhotos = () => {
-  // 1) Vite
   try {
     if (
       typeof import.meta !== "undefined" &&
@@ -70,9 +70,12 @@ const loadHousePhotos = () => {
     }
   } catch {}
 
-  // 2) CRA/Webpack
   try {
-    const ctx = require.context("../../Assets/HouseFotos", false, /\.(png|jpe?g|webp|avif|gif)$/i);
+    const ctx = require.context(
+      "../../Assets/HouseFotos",
+      false,
+      /\.(png|jpe?g|webp|avif|gif)$/i
+    );
     return ctx
       .keys()
       .map((k) => ctx(k)?.default || ctx(k))
@@ -105,160 +108,126 @@ function DetailRow({ label, value }) {
 }
 
 function HouseCard({ house, expanded, onToggle }) {
-  const title = house?.title || "Sin título";
+  const title = house?.title || "No title";
   const price = house?.sale_price;
+  const imgUrl = useMemo(() => pickPhotoForHouse(house?.house_id), [
+    house?.house_id,
+  ]);
 
-  const imgUrl = useMemo(
-    () => pickPhotoForHouse(house?.house_id),
-    [house?.house_id]
-  );
+  // Bubble keys: must match JSON keys exactly!
+  const bubbleKeys = ["total_bath", "lot_area", "garage_cars"];
+  const mainFeatures = bubbleKeys.map((key) => ({
+    key,
+    label: key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+    value: house[key],
+  }));
 
-  // Etiquetas rápidas (máx 4)
-  const tags = useMemo(() => {
-    const out = [];
-    if (house?.neighborhood) out.push(house.neighborhood);
-    if (house?.house_style) out.push(house.house_style);
-    if (house?.bedroom_abv_gr != null)
-      out.push(`${Number(house.bedroom_abv_gr)} hab.`);
-    if (house?.full_bath != null) out.push(`${Number(house.full_bath)} baños`);
-    if (house?.garage_cars != null)
-      out.push(`${Number(house.garage_cars)} autos`);
-    return out.slice(0, 4);
-  }, [house]);
+  // Exclude these from summary and details
+  const excludeKeys = [
+    ...bubbleKeys,
+    "vendor_id",
+    "sale_price",
+    "house_id"
+  ];
+
+  // Summary: first 5 important non-null fields not in excludeKeys
+  const summaryFields = Object.entries(house)
+    .filter(([key, value]) =>
+      !excludeKeys.includes(key) &&
+      value !== null &&
+      value !== undefined &&
+      value !== ""
+    )
+    .slice(0, 5);
+
+  const summary = summaryFields
+    .map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`)
+    .join(", ");
+
+  // Details: all other non-null fields not in bubbles or summary
+  const shownKeys = [...bubbleKeys, ...summaryFields.map(([k]) => k)];
+  const detailFields = Object.entries(house)
+    .filter(([key, value]) =>
+      !shownKeys.includes(key) &&
+      value !== null &&
+      value !== undefined &&
+      value !== ""
+    );
+
+  // Contact info (always shown in a separate section)
+  const contactKeys = ["contact_email", "contact_phone", "contact_name"];
+  const contactFields = contactKeys
+    .map((key) => [key, house[key]])
+    .filter(([, value]) => value !== null && value !== undefined && value !== "");
 
   return (
     <article
-      className={`rec-card ${expanded ? "is-open" : ""}`}
+      className={`rec-card airbnb-card${expanded ? " is-open" : ""}`}
       onClick={onToggle}
       role="button"
       tabIndex={0}
       aria-expanded={expanded}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onToggle()}
     >
-      <div className="rec-head">
-        <div
-          className="rec-img"
-          aria-hidden="true"
-          style={imgUrl ? { backgroundImage: `url(${imgUrl})` } : undefined}
-        />
-        <div className="rec-main">
-          <h4 className="rec-title">{title}</h4>
-          <div className="rec-tags">
-            {tags.map((t) => (
-              <span className="rec-tag" key={t}>
-                {t}
-              </span>
-            ))}
-          </div>
+      <div
+        className="rec-img-top"
+        style={imgUrl ? { backgroundImage: `url(${imgUrl})` } : undefined}
+      />
+      <div className="rec-main-airbnb">
+        <h4 className="rec-title-airbnb">{title}</h4>
+        <div className="rec-price-airbnb">
+          {price != null ? `$ ${formatPrice(price)}` : "N/A"}
         </div>
-        <div className="rec-price">
-          {price != null ? `$ ${formatPrice(price)}` : "S/D"}
+        <div className="rec-features-airbnb">
+          {mainFeatures.map((f, i) => (
+            <span className="rec-feature-bubble" key={i}>
+              <span className="rec-feature-value">{formatFeature(f.value)}</span>
+              <span className="rec-feature-label">{f.label}</span>
+            </span>
+          ))}
         </div>
       </div>
-
-      <div className="rec-divider" />
-
-      <div className="rec-more">
-        <span className="rec-more-text">
-          {expanded ? "Hide details" : "See details"}
-        </span>
+      <div className="rec-more-airbnb">
+        <span>{expanded ? "Hide details" : "See details"}</span>
         <span className={`rec-caret ${expanded ? "up" : ""}`} aria-hidden>
           ▾
         </span>
       </div>
-
       {expanded && (
-        <div className="rec-details">
-          <DetailRow label="Vecindario" value={house?.neighborhood} />
-          <DetailRow label="Estilo" value={house?.house_style} />
-          <DetailRow
-            label="Construida"
-            value={house?.year_built ? Number(house.year_built) : null}
-          />
-          <DetailRow
-            label="Superficie habitable (GrLivArea)"
-            value={
-              house?.gr_liv_area ? `${Number(house.gr_liv_area)} ft²` : null
-            }
-          />
-          <DetailRow
-            label="1er piso"
-            value={
-              house?.first_flr_sf != null
-                ? `${Number(house.first_flr_sf)} ft²`
-                : null
-            }
-          />
-          <DetailRow
-            label="2do piso"
-            value={
-              house?.second_flr_sf != null
-                ? `${Number(house.second_flr_sf)} ft²`
-                : null
-            }
-          />
-          <DetailRow
-            label="Dormitorios"
-            value={
-              house?.bedroom_abv_gr != null ? Number(house.bedroom_abv_gr) : null
-            }
-          />
-          <DetailRow
-            label="Baños"
-            value={
-              house?.total_bath != null
-                ? Number(house.total_bath)
-                : house?.full_bath != null || house?.half_bath != null
-                ? `${house?.full_bath ?? 0} / ${house?.half_bath ?? 0} (completos / medios)`
-                : null
-            }
-          />
-          <DetailRow
-            label="Chimeneas"
-            value={house?.fireplaces != null ? Number(house.fireplaces) : null}
-          />
-          <DetailRow
-            label="Cochera (autos)"
-            value={house?.garage_cars != null ? Number(house.garage_cars) : null}
-          />
-          <DetailRow
-            label="Cochera (área)"
-            value={
-              house?.garage_area != null
-                ? `${Number(house.garage_area)} ft²`
-                : null
-            }
-          />
-          <DetailRow
-            label="Porche abierto"
-            value={
-              house?.open_porch_sf != null
-                ? `${Number(house.open_porch_sf)} ft²`
-                : null
-            }
-          />
-          <DetailRow
-            label="Piscina (área)"
-            value={house?.pool_area != null ? Number(house.pool_area) : null}
-          />
-          <DetailRow
-            label="A/C central"
-            value={
-              house?.central_air != null
-                ? String(house.central_air) === "Y"
-                  ? "Sí"
-                  : "No"
-                : null
-            }
-          />
-          <DetailRow label="Condición de venta" value={house?.sale_condition} />
-          <DetailRow label="Tipo de venta" value={house?.sale_type} />
-          <DetailRow label="Descripción" value={house?.description} />
-
-          <div className="rec-subtitle">Contact</div>
-          <DetailRow label="Teléfono" value={house?.contact_phone} />
-          <DetailRow label="Email" value={house?.contact_email} />
-          <DetailRow label="Vendor ID" value={house?.vendor_id} />
+        <div className="rec-details-airbnb">
+          <div className="rec-summary">
+            <strong>Summary:</strong> {summary || "No summary available"}
+          </div>
+          {detailFields.length > 0 && (
+            <div className="rec-details-section">
+              <div className="rec-details-title">Additional features:</div>
+              <div className="rec-details-grid">
+                {detailFields.map(([key, value]) => (
+                  <DetailRow
+                    key={key}
+                    label={key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                    value={value}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="rec-contact-card">
+            <strong className="rec-contact-title">Contact information:</strong>
+            <div className="rec-contact-grid">
+              {contactFields.length > 0 ? (
+                contactFields.map(([key, value]) => (
+                  <DetailRow
+                    key={key}
+                    label={key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                    value={value}
+                  />
+                ))
+              ) : (
+                <div className="rec-detail">No contact information available</div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </article>
@@ -273,12 +242,10 @@ export default function Listings() {
   const [err, setErr] = useState("");
   const [openId, setOpenId] = useState(null);
 
-  // Lee vendorId una sola vez
   useEffect(() => {
     setVendorId(getVendorIdFromLocalStorage());
   }, []);
 
-  // Fetch cuando ya tenemos vendorId
   useEffect(() => {
     const fetchHouses = async () => {
       try {
@@ -293,7 +260,19 @@ export default function Listings() {
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json?.error || "Error obteniendo casas");
-        setHouses(Array.isArray(json) ? json : []);
+        // Limpiar los objetos eliminando claves con valor null
+        const cleanedData = Array.isArray(json)
+          ? json.map(item => {
+              const filteredItem = {};
+              for (const key in item) {
+                if (item[key] !== null) {
+                  filteredItem[key] = item[key];
+                }
+              }
+              return filteredItem;
+            })
+          : [];
+        setHouses(cleanedData);
       } catch (e) {
         console.error(e);
         setErr(e.message || "Error de red");
@@ -305,7 +284,7 @@ export default function Listings() {
   }, [vendorId]);
 
   return (
-    <section className="rec-wrap">
+    <section className="rec-wrap rec-bg">
       <div className="rec-header">
         <h2 className="pref-title rec-title-page">My houses</h2>
         <p className="pref-subtitle rec-subtitle-page">
@@ -316,9 +295,7 @@ export default function Listings() {
       </div>
 
       {vendorId == null && (
-        <div className="global-error">
-          Login as vendor to see your listings.
-        </div>
+        <div className="global-error">Login as vendor to see your listings.</div>
       )}
 
       {vendorId != null && (
@@ -332,13 +309,15 @@ export default function Listings() {
                 <div className="rec-empty">You don't have published houses yet</div>
               )}
 
-              {houses.map((house) => (
+              {houses.map((house, idx) => (
                 <HouseCard
-                  key={house?.house_id || Math.random()}
+                  key={house?.house_id ?? idx}
                   house={house}
-                  expanded={openId === house?.house_id}
+                  expanded={openId === (house?.house_id ?? idx)}
                   onToggle={() =>
-                    setOpenId((cur) => (cur === house?.house_id ? null : house?.house_id))
+                    setOpenId((cur) =>
+                      cur === (house?.house_id ?? idx) ? null : (house?.house_id ?? idx)
+                    )
                   }
                 />
               ))}
