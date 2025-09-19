@@ -678,9 +678,9 @@ export default function Preferences() {
   return (
     <div className="pref-page">
       <div className="pref-container">
-        <h1 className="pref-title">Preferencias del comprador</h1>
+        <h1 className="pref-title">Client Preferences</h1>
         <p className="pref-subtitle">
-          Selecciona tus preferencias y define rangos mínimos y máximos.
+          Select your preferences to help us recommend the best properties for you.
         </p>
 
         <form className="pref-form" onSubmit={handleSubmit}>
@@ -695,7 +695,7 @@ export default function Preferences() {
                   value={form.preferred_neighborhood}
                   onChange={onSel("preferred_neighborhood")}
                 >
-                  <Options values={C.Neighborhood} placeholder="Selecciona barrio" />
+                  <Options values={C.Neighborhood} placeholder="Select neighborhood" />
                 </select>
               </div>
               <div className="field">
@@ -705,7 +705,7 @@ export default function Preferences() {
                   value={form.preferred_ms_zoning}
                   onChange={onSel("preferred_ms_zoning")}
                 >
-                  <Options values={C.MSZoning} placeholder="Selecciona MS Zoning" />
+                  <Options values={C.MSZoning} placeholder="Select MS Zoning" />
                 </select>
               </div>
               <div className="field">
@@ -715,7 +715,7 @@ export default function Preferences() {
                   value={form.preferred_lot_shape}
                   onChange={onSel("preferred_lot_shape")}
                 >
-                  <Options values={C.LotShape} placeholder="Selecciona Lot Shape" />
+                  <Options values={C.LotShape} placeholder="Select Lot Shape" />
                 </select>
               </div>
               <div className="field">
@@ -725,7 +725,7 @@ export default function Preferences() {
                   value={form.preferred_land_contour}
                   onChange={onSel("preferred_land_contour")}
                 >
-                  <Options values={C.LandContour} placeholder="Selecciona Land Contour" />
+                  <Options values={C.LandContour} placeholder="Select Land Contour" />
                 </select>
               </div>
               <div className="field">
@@ -735,7 +735,7 @@ export default function Preferences() {
                   value={form.preferred_lot_config}
                   onChange={onSel("preferred_lot_config")}
                 >
-                  <Options values={C.LotConfig} placeholder="Selecciona Lot Config" />
+                  <Options values={C.LotConfig} placeholder="Select Lot Config" />
                 </select>
               </div>
               <div className="field">
@@ -745,7 +745,7 @@ export default function Preferences() {
                   value={form.preferred_condition1}
                   onChange={onSel("preferred_condition1")}
                 >
-                  <Options values={C.Condition1} placeholder="Selecciona Condition1" />
+                  <Options values={C.Condition1} placeholder="Select Condition1" />
                 </select>
               </div>
             </div>
@@ -762,7 +762,7 @@ export default function Preferences() {
                   value={form.preferred_bldg_type}
                   onChange={onSel("preferred_bldg_type")}
                 >
-                  <Options values={C.BldgType} placeholder="Selecciona BldgType" />
+                  <Options values={C.BldgType} placeholder="Select BldgType" />
                 </select>
               </div>
               <div className="field">
@@ -772,7 +772,7 @@ export default function Preferences() {
                   value={form.preferred_house_style}
                   onChange={onSel("preferred_house_style")}
                 >
-                  <Options values={C.HouseStyle} placeholder="Selecciona HouseStyle" />
+                  <Options values={C.HouseStyle} placeholder="Select HouseStyle" />
                 </select>
               </div>
               <div className="field">
@@ -782,7 +782,7 @@ export default function Preferences() {
                   value={form.preferred_roof_style}
                   onChange={onSel("preferred_roof_style")}
                 >
-                  <Options values={C.RoofStyle} placeholder="Selecciona RoofStyle" />
+                  <Options values={C.RoofStyle} placeholder="Select RoofStyle" />
                 </select>
               </div>
               <div className="field">
@@ -792,7 +792,7 @@ export default function Preferences() {
                   value={form.preferred_exterior1st}
                   onChange={onSel("preferred_exterior1st")}
                 >
-                  <Options values={C.Exterior1st} placeholder="Selecciona Exterior1st" />
+                  <Options values={C.Exterior1st} placeholder="Select Exterior1st" />
                 </select>
               </div>
               <div className="field">
@@ -802,7 +802,7 @@ export default function Preferences() {
                   value={form.preferred_exterior2nd}
                   onChange={onSel("preferred_exterior2nd")}
                 >
-                  <Options values={C.Exterior2nd} placeholder="Selecciona Exterior2nd" />
+                  <Options values={C.Exterior2nd} placeholder="Select Exterior2nd" />
                 </select>
               </div>
               <div className="field">
@@ -812,7 +812,7 @@ export default function Preferences() {
                   value={form.preferred_foundation}
                   onChange={onSel("preferred_foundation")}
                 >
-                  <Options values={C.Foundation} placeholder="Selecciona Foundation" />
+                  <Options values={C.Foundation} placeholder="Select Foundation" />
                 </select>
               </div>
             </div>

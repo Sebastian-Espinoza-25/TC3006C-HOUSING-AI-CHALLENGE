@@ -209,26 +209,26 @@ export default function Recommendations() {
   return (
     <section className="rec-wrap">
       <div className="rec-header">
-        <h2 className="pref-title rec-title-page">Recomendaciones</h2>
+        <h2 className="pref-title rec-title-page">Recommendations</h2>
         <p className="pref-subtitle rec-subtitle-page">
           {clientId == null
-            ? "No se encontró clientId en el navegador."
-            : `Casas que hacen match con las preferencias del cliente ${
+            ? "Client Id not found."
+            : `Matching houses to preferences of client ${
                 data?.client?.username ? `“${data.client.username}”` : `#${clientId}`
               }`}
         </p>
       </div>
 
-      {clientId == null && <div className="global-error">Inicia sesión como cliente o guarda el clientId en localStorage.</div>}
+      {clientId == null && <div className="global-error">Login as client </div>}
 
       {clientId != null && (
         <>
-          {loading && <div className="rec-state">Cargando recomendaciones…</div>}
+          {loading && <div className="rec-state">Loading recommendations</div>}
           {err && !loading && <div className="global-error">{err}</div>}
 
           {!loading && !err && (
             <div className="rec-rail">
-              {data.matches.length === 0 && <div className="rec-empty">No hay coincidencias por ahora.</div>}
+              {data.matches.length === 0 && <div className="rec-empty">No matches yet</div>}
 
               {data.matches.map(({ house, vendor }) => (
                 <HouseCard
