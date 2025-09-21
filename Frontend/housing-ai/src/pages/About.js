@@ -1,3 +1,5 @@
+// @author Santiago Villazón Ponce de León | A01746396
+
 import { useEffect, useRef, useState } from "react";
 import Santiago from "../Assets/TeamFotos/Santiago.png";
 import Jesus from "../Assets/TeamFotos/Jesus.png";

@@ -1,3 +1,5 @@
+// @author Santiago Villazón Ponce de León | A01746396
+
 // src/pages/Register.js
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -52,8 +54,6 @@ export default function Register() {
           username: formData.name.trim(),
           email: formData.email.trim(),
           password: formData.password,
-          // En muchos backends el endpoint ya fija el rol,
-          // pero mandar el rol no estorba si lo ignoran:
           role
         })
       });

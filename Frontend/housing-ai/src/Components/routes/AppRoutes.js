@@ -14,7 +14,7 @@ import RoleGate from "../../guards/RoleGate";
 
 import Preferences from "../../pages/buyer/Preferences";
 
-import Publish from "../../pages/seller/publish"; // ← por ahora NO expongas publish
+import Publish from "../../pages/seller/publish"; 
 
 import Listings from "../../pages/seller/listings";
 

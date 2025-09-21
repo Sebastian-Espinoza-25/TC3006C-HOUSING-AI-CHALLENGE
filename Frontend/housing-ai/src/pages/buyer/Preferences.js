@@ -1,3 +1,5 @@
+// @author Santiago Villazón Ponce de León | A01746396
+
 import { useMemo, useState } from "react";
 import datasetSummary from "../../Assets/dataset_summary.json";
 import "../../styles/buyer.css";
@@ -77,7 +79,7 @@ function YesNo({ label, value, onChange }) {
 
 /* ================== Componente ================== */
 
-// Obtiene el clientId desde localStorage (similar a publish.js)
+// Obtiene el clientId desde localStorage 
 function getClientIdFromLocalStorage() {
   try {
     const directClientId = localStorage.getItem("clientId");
@@ -177,7 +179,7 @@ export default function Preferences() {
     min_year_remod_add: "",
     max_year_remod_add: "",
 
-    // Para calcular edades (no existe en DB, es solo input)
+    // Para calcular edades 
     min_yr_sold: "",
     max_yr_sold: "",
 
@@ -280,7 +282,7 @@ export default function Preferences() {
     preferred_sale_type: "",
     preferred_sale_condition: "",
 
-    /* Componentes para TotalSF (no duplicamos inputs) */
+    /* Componentes para TotalSF  */
     totalSF_min_1st: "",
     totalSF_max_1st: "",
     totalSF_min_2nd: "",
@@ -431,12 +433,12 @@ export default function Preferences() {
     const minYR = sanitize(form.min_year_remod_add, true);
     const maxYR = sanitize(form.max_year_remod_add, true);
 
-    // HouseAge (rango conservador)
+    // HouseAge
     const hMin = minYrSold != null && maxYB != null ? minYrSold - maxYB : null;
     const hMax = maxYrSold != null && minYB != null ? maxYrSold - minYB : null;
     const [min_house_age, max_house_age] = bothIfSingle(hMin, hMax);
 
-    // RemodAge (rango conservador)
+    // RemodAge
     const rMin = minYrSold != null && maxYR != null ? minYrSold - maxYR : null;
     const rMax = maxYrSold != null && minYR != null ? maxYrSold - minYR : null;
     const [min_remod_age, max_remod_age] = bothIfSingle(rMin, rMax);
@@ -495,7 +497,7 @@ export default function Preferences() {
       );
     }
 
-    // 1st/2nd (no derivados; tu schema los tiene)
+    // 1st/2nd 
     const min_1st_flr_sf = sanitize(form.totalSF_min_1st);
     const max_1st_flr_sf = sanitize(form.totalSF_max_1st);
     const min_2nd_flr_sf = sanitize(form.totalSF_min_2nd);
@@ -1112,7 +1114,7 @@ export default function Preferences() {
             </div>
           </section>
 
-          {/* Calefacción / A/A & eléctricos */}
+          {/* Calefacción */}
           <section className="pref-section">
             <h2 className="section-title">Calefacción, A/A & Eléctrico</h2>
             <div className="grid-2">

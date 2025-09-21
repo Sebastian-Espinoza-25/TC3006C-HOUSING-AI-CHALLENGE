@@ -1,5 +1,6 @@
 // src/services/auth.js
-const API = process.env.REACT_APP_API || "http://localhost:5001"; // asegúrate del puerto correcto
+// @author Santiago Villazón Ponce de León | A01746396
+const API = process.env.REACT_APP_API || "http://localhost:5001"; 
 
 export async function login(identifier, password, role = "auto") {
   const res = await fetch(`${API}/api/auth/login`, {
@@ -14,7 +15,7 @@ export async function login(identifier, password, role = "auto") {
   const data = await res.json();
   localStorage.setItem("token", data.access_token);
   localStorage.setItem("role", data.user.role);
-  window.dispatchEvent(new Event("auth-changed"));   // <— notifica a la UI
+  window.dispatchEvent(new Event("auth-changed"));   // <— notifica a la UI para cambio de usuarioo
   return data;
 }
 
@@ -31,5 +32,5 @@ export async function me() {
 export function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("role");
-  window.dispatchEvent(new Event("auth-changed"));   // <— notifica a la UI
+  window.dispatchEvent(new Event("auth-changed"));   // <— notifica a la UI para cambio de usuario
 }
