@@ -1,3 +1,5 @@
+// @author Santiago Villazón Ponce de León | A01746396
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -5,10 +7,7 @@ import houseImg from "../Assets/house.png";
 import "../styles/Styles.css";
 import { login } from "../services/auth";
 
-/**
- * Intenta extraer vendorId de varias estructuras típicas de respuesta.
- * Ajusta si tu backend usa otra forma.
- */
+
 function extractVendorId(data) {
   return (
     data?.vendor?.id ??
@@ -21,7 +20,7 @@ function extractVendorId(data) {
 }
 
 /**
- * Extrae role de la respuesta (ajusta las rutas según tu backend).
+ * Extrae role de la respuesta.
  */
 function extractRole(data) {
   return (
@@ -33,7 +32,7 @@ function extractRole(data) {
 }
 
 /**
- * Extrae token si tu backend lo regresa (Bearer/JWT).
+ * Extrae token
  */
 function extractToken(data) {
   return (

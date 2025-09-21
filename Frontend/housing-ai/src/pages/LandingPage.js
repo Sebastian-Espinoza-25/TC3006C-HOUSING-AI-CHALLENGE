@@ -1,3 +1,5 @@
+// @author Santiago Villazón Ponce de León | A01746396
+
 // src/pages/LandingPage.js
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -16,7 +18,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing">
-      {/* HERO: background image is set in CSS (.landing .hero) */}
+      {/* HERO: background image */}
       <section className="hero">
         <div className="hero-content">
           <h1>Want to rent or sell your property fast?</h1>
@@ -51,7 +53,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS: alt background + top & bottom curves */}
       <section className="section alt reveal sep sep--top-blue sep--bottom-blue">
         <div className="container">
           <h2 className="section-title">How it works</h2>
@@ -96,7 +97,7 @@ export default function LandingPage() {
               alert("Demo: price estimate coming soon 🚧");
             }}
           >
-            {/* Minimal inputs; replace with real dataset fields later */}
+            {/* Minimal inputs; */}
             <input type="text" placeholder="Neighborhood / ZIP" required />
             <input type="number" placeholder="Bedrooms" min="0" required />
             <input type="number" placeholder="Bathrooms" min="0" required />

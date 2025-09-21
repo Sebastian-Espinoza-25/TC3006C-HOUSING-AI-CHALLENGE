@@ -1,5 +1,6 @@
 /* =========================
    Base / Reset
+   * @author Santiago Villazón Ponce de León | A01746396
    ========================= */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }    /* smooth programmatic/anchor scroll */
@@ -312,7 +313,7 @@ html, body, #root { height: 100%; }
    Login — panel alto a la izquierda + form más separado
    ========================= */
 
-/* Layout general (más gap entre columnas) */
+/* Layout general */
 .auth-layout {
   position: relative;
   width: min(1200px, 94vw);
@@ -350,7 +351,7 @@ html, body, #root { height: 100%; }
   z-index: -1;
 }
 
-/* ---------- Textos (en un div aparte) ---------- */
+/* ---------- Textos  ---------- */
 .auth-texts {
   position: relative;
   margin-bottom: 1rem; /* espacio con la imagen */
@@ -378,7 +379,7 @@ html, body, #root { height: 100%; }
   transform: translateX(-55px); /* mueve a la izquierda */
 }
 
-/* ---------- Imagen (en un div aparte) ---------- */
+/* ---------- Imagen  ---------- */
 .auth-image {
   display: flex;
   justify-content: center;
@@ -555,7 +556,7 @@ html, body, #root { height: 100%; }
   box-shadow: 0 20px 60px rgba(0,0,0,0.25);
   display: grid;
   gap: 1rem;
-  margin: 8dvh 1rem; /* respiro desde arriba/abajo */
+  margin: 8dvh 1rem; 
 }
 
 /* Título */

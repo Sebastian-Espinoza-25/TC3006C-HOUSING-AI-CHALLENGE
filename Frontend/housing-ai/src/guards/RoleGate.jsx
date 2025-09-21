@@ -1,3 +1,5 @@
+// @author Santiago Villazón Ponce de León | A01746396
+
 import { Navigate } from "react-router-dom";
 
 export default function RoleGate({ allow = [], children }) {

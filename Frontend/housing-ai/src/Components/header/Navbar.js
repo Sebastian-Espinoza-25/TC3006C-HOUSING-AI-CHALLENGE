@@ -1,3 +1,5 @@
+// @author Santiago Villazón Ponce de León | A01746396
+
 // src/Components/header/Navbar.jsx
 import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
